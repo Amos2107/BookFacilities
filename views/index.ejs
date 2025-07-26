@@ -53,47 +53,6 @@
         <% }); %>
       </div>
     <% } %>
-
-    <h2 class="text-center mt-5">Facilities from Rental App Database</h2>
-
-    <div class="table-responsive mt-4">
-      <table class="table table-hover small text-center">
-        <thead class="table-dark">
-          <tr>
-            <th scope="col" width="100">Facility Name</th>
-            <th scope="col" width="100">Facility Image</th>
-            <th scope="col" width="100">Description</th>
-            <th scope="col" width="50">Location</th>
-            <th scope="col" width="50">Capacity</th>
-            <th scope="col" width="100">Group</th>
-            <th scope="col" width="50">Edit</th>
-            <th scope="col" width="50">Delete</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% if (facilities && facilities.length > 0) { %>
-            <% for(let i=0; i < facilities.length; i++) { %>
-              <tr>
-                <td><a href="/facilities/<%= facilities[i].facilities_id %>"><%= facilities[i].name %></a></td>
-                <td><img src="/images/<%= facilities[i].image %>" width="100" alt="<%= facilities[i].name %>"></td>
-                <td><%= facilities[i].description %></td>
-                <td><%= facilities[i].location %></td>
-                <td><%= facilities[i].capacity %></td>
-                <td><%= facilities[i].facilities_group %></td>
-                <td><a class="btn btn-warning btn-sm" href="/editFacilities/<%= facilities[i].facilities_id %>">Edit</a></td>
-                <td>
-                  <a class="btn btn-danger btn-sm" href="/deleteFacilities/<%= facilities[i].facilities_id %>" onclick="return confirm('Are you sure you want to delete this facility?')">Delete</a>
-                </td>
-              </tr>
-            <% } %>
-          <% } else { %>
-            <tr>
-              <td colspan="8">No facilities available.</td>
-            </tr>
-          <% } %>
-        </tbody>
-      </table>
-    </div>
   </div>
 </body>
 </html>
