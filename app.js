@@ -48,7 +48,7 @@ const checkAuthenticated = (req, res, next) => {
 const checkAdmin = (req, res, next) => {
   if (req.session.user?.role === 'admin') return next();
   req.flash('error', 'Access denied');
-  res.redirect('/dashboard');
+  res.redirect('/');
 };
 
 // ======= Auth Routes =======
@@ -109,7 +109,7 @@ app.post('/login', (req, res) => {
     if (results.length > 0) {
       req.session.user = results[0];
       req.flash('success', 'Login successful');
-      res.redirect('/dashboard');
+      res.redirect('/');
     } else {
       req.flash('error', 'Invalid email or password');
       res.redirect('/login');
@@ -120,10 +120,6 @@ app.post('/login', (req, res) => {
 app.get('/logout', (req, res) => {
   req.session.destroy();
   res.redirect('/');
-});
-
-app.get('/dashboard', checkAuthenticated, (req, res) => {
-  res.render('dashboard', { user: req.session.user });
 });
 
 app.get('/admin', checkAuthenticated, checkAdmin, (req, res) => {
@@ -218,11 +214,32 @@ app.get('/admin/users', checkAuthenticated, checkAdmin, (req, res) => {
     if (err) throw err;
     res.render('viewUsers', {
       users: results,
-      messages: {
-        success: req.flash('success'),
-        error: req.flash('error')
-      }
+      search: '', // ✅ ADD THIS LINE
+      messages: req.flash('success').concat(req.flash('error')) // make sure it's a flat array too
     });
+  });
+});
+
+app.get('/admin/manage-users', checkAuthenticated, checkAdmin, (req, res) => {
+  const search = req.query.search || '';
+
+  const sql = `
+    SELECT id, username, email, role 
+    FROM users 
+    WHERE username LIKE ? OR email LIKE ?
+  `;
+
+  const params = [`%${search}%`, `%${search}%`];
+
+  db.query(sql, params, (err, results) => {
+    if (err) throw err;
+
+    res.render('viewUsers', {
+  users: results,
+  search,
+  messages: req.flash('success').concat(req.flash('error')) // ✅ now it's a flat array
+});
+
   });
 });
 
