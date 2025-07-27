@@ -79,7 +79,8 @@ const validateRegistration = (req, res, next) => {
 };
 
 app.post('/register', validateRegistration, (req, res) => {
-  const { username, email, password, address, contact, role } = req.body;
+  const { username, email, password, address, contact } = req.body;
+  const role = 'user';
   const sql = 'INSERT INTO users (username, email, password, address, contact, role) VALUES (?, ?, SHA1(?), ?, ?, ?)';
   db.query(sql, [username, email, password, address, contact, role], err => {
     if (err) throw err;
@@ -179,6 +180,137 @@ app.post('/editFacilities/:id', checkAuthenticated, checkAdmin, upload.single('i
   db.query(sql, [name, description, location, capacity, image, facilities_group, req.params.id], err => {
     if (err) return res.status(500).send('Error updating facility');
     res.redirect('/');
+  });
+});
+
+app.get('/filter', (req, res) => {
+  const { group, keyword } = req.query;
+
+  let sql = 'SELECT * FROM facilities WHERE 1=1';
+  const params = [];
+
+  if (group && group !== '') {
+    sql += ' AND facilities_group = ?';
+    params.push(group);
+  }
+
+  if (keyword && keyword.trim() !== '') {
+    sql += ' AND name LIKE ?';
+    params.push(`%${keyword}%`);
+  }
+
+  db.query(sql, params, (error, results) => {
+    if (error) {
+      console.error('Error filtering facilities:', error);
+      return res.status(500).send('Server Error');
+    }
+
+    res.render('index', {
+      facilities: results,
+      user: req.session.user,
+      messages: req.flash('success') // Optional: for flash message support
+    });
+  });
+});
+
+app.get('/admin/users', checkAuthenticated, checkAdmin, (req, res) => {
+  db.query('SELECT id, username, email, role FROM users', (err, results) => {
+    if (err) throw err;
+    res.render('viewUsers', {
+      users: results,
+      messages: {
+        success: req.flash('success'),
+        error: req.flash('error')
+      }
+    });
+  });
+});
+
+app.post('/admin/update-role/:id', checkAuthenticated, checkAdmin, (req, res) => {
+  const userId = req.params.id;
+  const newRole = req.body.role;
+
+  if (!['user', 'admin'].includes(newRole)) {
+    req.flash('error', 'Invalid role selected');
+    return res.redirect('/admin/users');
+  }
+
+  // Get the current role of the user
+  const getUserQuery = 'SELECT role FROM users WHERE id = ?';
+  db.query(getUserQuery, [userId], (err, results) => {
+    if (err) throw err;
+
+    const currentRole = results[0]?.role;
+
+    // If trying to demote the last admin
+    if (currentRole === 'admin' && newRole === 'user') {
+      db.query('SELECT COUNT(*) AS adminCount FROM users WHERE role = "admin"', (err, results) => {
+        if (err) throw err;
+
+        const adminCount = results[0].adminCount;
+
+        if (adminCount <= 1) {
+          req.flash('error', 'You cannot demote the last admin!');
+          return res.redirect('/admin/users');
+        }
+
+        // Proceed with demotion
+        updateUserRole();
+      });
+    } else {
+      updateUserRole(); // No risk, just update
+    }
+
+    function updateUserRole() {
+      const sql = 'UPDATE users SET role = ? WHERE id = ?';
+      db.query(sql, [newRole, userId], (err) => {
+        if (err) throw err;
+        req.flash('success', 'User role updated successfully');
+        res.redirect('/admin/users');
+      });
+    }
+  });
+});
+
+app.post('/admin/delete-user/:id', checkAuthenticated, checkAdmin, (req, res) => {
+  const userId = req.params.id;
+
+  // Get user to delete
+  db.query('SELECT role FROM users WHERE id = ?', [userId], (err, results) => {
+    if (err) throw err;
+
+    const userToDelete = results[0];
+
+    if (!userToDelete) {
+      req.flash('error', 'User not found');
+      return res.redirect('/admin/users');
+    }
+
+    // If deleting an admin, check if it's the last one
+    if (userToDelete.role === 'admin') {
+      db.query('SELECT COUNT(*) AS adminCount FROM users WHERE role = "admin"', (err, results) => {
+        if (err) throw err;
+
+        const adminCount = results[0].adminCount;
+
+        if (adminCount <= 1) {
+          req.flash('error', 'Cannot delete the last admin!');
+          return res.redirect('/admin/users');
+        }
+
+        deleteUser(); // Safe to delete
+      });
+    } else {
+      deleteUser();
+    }
+
+    function deleteUser() {
+      db.query('DELETE FROM users WHERE id = ?', [userId], (err) => {
+        if (err) throw err;
+        req.flash('success', 'User deleted successfully');
+        res.redirect('/admin/users');
+      });
+    }
   });
 });
 

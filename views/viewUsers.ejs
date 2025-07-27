@@ -1,0 +1,42 @@
+<%- include('partials/header', { user: user, messages: messages }) %>
+
+<h2>Manage Users</h2>
+
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th>Username</th>
+      <th>Email</th>
+      <th>Role</th>
+      <th>Change Role</th>
+      <th>Delete User</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% users.forEach(user => { %>
+      <tr>
+        <td><%= user.username %></td>
+        <td><%= user.email %></td>
+        <td><%= user.role %></td>
+        <td>
+          <form method="POST" action="/admin/update-role/<%= user.id %>" class="d-flex">
+            <select name="role" class="form-select form-select-sm" style="width: auto;">
+              <option value="user" <%= user.role === 'user' ? 'selected' : '' %>>User</option>
+              <option value="admin" <%= user.role === 'admin' ? 'selected' : '' %>>Admin</option>
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">Update</button>
+          </form>
+        </td>
+        <td>
+          <form method="POST" action="/admin/delete-user/<%= user.id %>" onsubmit="return confirm('Are you sure?')">
+            <button type="submit" class="btn btn-danger btn-sm ms-2">Delete</button>
+          </form>
+        </td>
+      </tr>
+    <% }) %>
+  </tbody>
+</table>
+
+<a href="/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+
+<%- include('partials/footer') %>
