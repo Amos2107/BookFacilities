@@ -346,28 +346,21 @@ app.get('/deleteFacilities/:id', checkAuthenticated, checkAdmin, (req, res) => {
 });
 
 // GET: Show booking form with success/error alerts
-app.get('/bookings/create', (req, res) => {
+app.get('/bookings/create', checkAuthenticated, (req, res) => {
   const success = req.query.success || 0;
   const error = req.query.error || 0;
 
-  const getUsers = 'SELECT user_id, username FROM users';
-  const getFacilities = 'SELECT facilities_id, name FROM facilities';
-  const getTimeSlots = 'SELECT time_slot_id, date FROM time_slots';
-
-  db.query(getUsers, (err, users) => {
-    if (err) return res.status(500).send('Error fetching users');
-    db.query(getFacilities, (err, facilities) => {
-      if (err) return res.status(500).send('Error fetching facilities');
-      db.query(getTimeSlots, (err, timeslots) => {
-        if (err) return res.status(500).send('Error fetching timeslots');
-
-        res.render('createBooking', {
-          users,
-          facilities,
-          timeslots,
-          success,
-          error
-        });
+  db.query('SELECT facilities_id, name FROM facilities', (err, facilities) => {
+    if (err) return res.status(500).send('Error fetching facilities');
+    db.query('SELECT time_slot_id, date, start_time, end_time FROM time_slots', (err, timeslots) => {
+      if (err) return res.status(500).send('Error fetching timeslots');
+      // Render without users list
+      res.render('createBooking', {
+        user: req.session.user,   // so template knows who's booking
+        facilities,
+        timeslots,
+        success,
+        error
       });
     });
   });
@@ -375,7 +368,11 @@ app.get('/bookings/create', (req, res) => {
 
 // POST: Handle booking form submission with availability check
 app.post('/bookings/create', (req, res) => {
-  const { user_id, facilities_id, time_slot_id, booking_date } = req.body;
+  const user_id      = req.session.user.user_id;
+  const facilities_id = req.body.facilities_id;
+  const time_slot_id  = req.body.time_slot_id;
+  const booking_date  = req.body.booking_date;
+
 
   if (!user_id || !facilities_id || !time_slot_id || !booking_date) {
     return res.status(400).send('Please fill all fields.');
