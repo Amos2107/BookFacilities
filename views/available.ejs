@@ -127,11 +127,6 @@
                             </h6>
                             <div class="d-flex justify-content-between align-items-center mt-3">
                                 <span class="badge bg-success">Available</span>
-                                <% if (user) { %>
-                                    <a href="/bookings/add?slot_id=<%= slot.time_slot_id %>" class="btn btn-sm btn-outline-primary">Request Booking</a>
-                                <% } else { %>
-                                    <a href="/login" class="btn btn-sm btn-outline-secondary">Login to Book</a>
-                                <% } %>
                             </div>
                         </div>
                     </div>
