@@ -37,37 +37,23 @@
 <body>
     <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
       <div class="container-fluid">
-        <a class="navbar-brand" href="/">Facility Booking System</a>
+        <a class="navbar-brand" href="/">Rental Facilities</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#collapsibleNavbar">
           <span class="navbar-toggler-icon"></span>
         </button>
-        <div class="collapse navbar-collapse" id="collapsibleNavbar">
-          <ul class="navbar-nav">
-            <% if (!user) {%>
-                <li class="nav-item">
-                    <a class="nav-link" href="/register">Register</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/login">Login</a>
-                </li>
-            <% } else { %>
-                <li class="nav-item">
-                    <a class="nav-link" href="/timeslots">All Slots</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/timeslots/available">Available Slots</a>
-                </li>
-                <% if (user.role === 'admin') { %>
-                <li class="nav-item">
-                    <a class="nav-link active" href="/timeslots/add">Add Slot</a>
-                </li>
-                <% } %>
-                <li class="nav-item">
-                    <a class="nav-link" href="/logout">Logout</a>
-                </li>
-            <% } %>
-          </ul>
-        </div>
+        <div class="collapse navbar-collapse">
+        <ul class="navbar-nav ms-auto">
+          <% if (user && user.role === 'admin') { %>
+            <li class="nav-item"><a class="nav-link" href="/addFacilities">Add Facility</a></li>
+            <li class="nav-item"><a class="nav-link" href="/admin/users">Manage Users</a></li>
+          <% } %>
+          <% if (user) { %>
+            <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+          <% } else { %>
+            <li class="nav-item"><a class="nav-link" href="/timeslots">All Slots</a></li>
+            <li class="nav-item"><a class="nav-link" href="/timeslots/available">Available Slots</a></li>
+          <% } %>
+        </ul>
       </div>
     </nav>
  
