@@ -375,19 +375,19 @@ app.get('/bookings/create', (req, res) => {
 
 // POST: Handle booking form submission with availability check
 app.post('/bookings/create', (req, res) => {
-  const { user_id, facility_id, timeslot_id, booking_date } = req.body;
+  const { user_id, facilities_id, time_slot_id, booking_date } = req.body;
 
-  if (!user_id || !facility_id || !timeslot_id || !booking_date) {
+  if (!user_id || !facilities_id || !time_slot_id || !booking_date) {
     return res.status(400).send('Please fill all fields.');
   }
 
   // Check if booking exists with same facility, timeslot, and date
   const checkSql = `
     SELECT COUNT(*) AS count FROM bookings
-    WHERE facility_id = ? AND timeslot_id = ? AND booking_date = ?
+    WHERE facilities_id = ? AND time_slot_id = ? AND booking_date = ?
   `;
 
-  db.query(checkSql, [facility_id, timeslot_id, booking_date], (err, results) => {
+  db.query(checkSql, [facilities_id, time_slot_id, booking_date], (err, results) => {
     if (err) {
       console.error('Error checking availability:', err);
       return res.status(500).send('Database error checking availability');
@@ -399,8 +399,8 @@ app.post('/bookings/create', (req, res) => {
     }
 
     // Insert booking if available
-    const insertSql = 'INSERT INTO bookings (user_id, facility_id, timeslot_id, booking_date) VALUES (?, ?, ?, ?)';
-    db.query(insertSql, [user_id, facility_id, timeslot_id, booking_date], (err) => {
+    const insertSql = 'INSERT INTO bookings (user_id, facilities_id, time_slot_id, booking_date) VALUES (?, ?, ?, ?)';
+    db.query(insertSql, [user_id, facilities_id, time_slot_id, booking_date], (err) => {
       if (err) {
         console.error('Error inserting booking:', err);
         return res.status(500).send('Database error saving booking');
@@ -422,9 +422,9 @@ app.get('/bookings', (req, res) => {
     SELECT b.id AS booking_id, u.name AS user_name, f.name AS facility_name, 
            t.slot AS time_slot, b.booking_date
     FROM bookings b
-    JOIN users u ON b.user_id = u.id
-    JOIN facilities f ON b.facility_id = f.id
-    JOIN timeslots t ON b.timeslot_id = t.id
+    JOIN username u ON b.user_id = u.id
+    JOIN facilities f ON b.facilities_id = f.id
+    JOIN timeslots t ON b.time_slot_id = t.id
     ORDER BY b.booking_date DESC
   `;
 
@@ -480,7 +480,7 @@ app.get('/timeslots', checkAuthenticated, (req, res) => {
  
 // View available slots for a specific date
 app.get('/timeslots/available', checkAuthenticated, (req, res) => {
-    const { date, facility_id } = req.query;
+    const { date, facilities_id } = req.query;
    
     let query = `
         SELECT ts.*, f.name
@@ -496,9 +496,9 @@ app.get('/timeslots/available', checkAuthenticated, (req, res) => {
         params.push(date);
     }
    
-    if (facility_id) {
-        query += ' AND ts.facility_id = ?';
-        params.push(facility_id);
+    if (facilities_id) {
+        query += ' AND ts.facilities_id = ?';
+        params.push(facilities_id);
     }
    
     query += ' ORDER BY ts.start_time';
@@ -521,7 +521,7 @@ app.get('/timeslots/available', checkAuthenticated, (req, res) => {
                 availableSlots: results,
                 facilities,
                 selectedDate: date,
-                selectedFacility: facility_id,
+                selectedFacility: facilities_id,
                 user: req.session.user,
                 messages: req.flash()
             });

@@ -110,12 +110,12 @@
 
             <form method="POST" action="/timeslots/edit/<%= timeSlot.time_slot_id %>">
                 <div class="mb-3">
-                    <label for="facility_id" class="form-label">Facility</label>
-                    <select class="form-select" id="facility_id" name="facility_id" required>
+                    <label for="facilities_id" class="form-label">Facility</label>
+                    <select class="form-select" id="facilities_id" name="facilities_id" required>
                         <% facilities.forEach(facility => { %>
-                            <option value="<%= facility.facility_id %>"
-                                <%= facility.facility_id == timeSlot.facility_id ? 'selected' : '' %>>
-                                <%= facility.facility_name %>
+                            <option value="<%= facility.facilities_id %>"
+                                <%= facilities.facilities_id == timeSlot.facilities_id ? 'selected' : '' %>>
+                                <%= facilities.facilities_name %>
                             </option>
                         <% }); %>
                     </select>

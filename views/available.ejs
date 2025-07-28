@@ -84,13 +84,13 @@
                                value="<%= selectedDate || '' %>">
                     </div>
                     <div class="col-md-5">
-                        <label for="facility_id" class="form-label">Facility</label>
-                        <select class="form-select" id="facility_id" name="facility_id">
+                        <label for="facilities_id" class="form-label">Facility</label>
+                        <select class="form-select" id="facilities_id" name="facilities_id">
                             <option value="">All Facilities</option>
                             <% facilities.forEach(facility => { %>
-                                <option value="<%= facility.facility_id %>" 
-                                    <%= selectedFacility == facility.facility_id ? 'selected' : '' %>>
-                                    <%= facility.facility_name %>
+                                <option value="<%= facilities.facilities_id %>" 
+                                    <%= selectedFacility == facilities.facilities_id ? 'selected' : '' %>>
+                                    <%= facilities.facilities_name %>
                                 </option>
                             <% }); %>
                         </select>

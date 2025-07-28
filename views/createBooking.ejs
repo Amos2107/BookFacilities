@@ -52,7 +52,7 @@
 
               <div class="mb-3">
                 <label class="form-label">Facility</label>
-                <select class="form-select" name="facility_id" required>
+                <select class="form-select" name="facilities_id" required>
                   <option value="">Select Facility</option>
                   <% facilities.forEach(facility => { %>
                     <option value="<%= facility.facilities_id %>"><%= facility.name %></option>
@@ -63,7 +63,7 @@
 
               <div class="mb-3">
                 <label class="form-label">Time Slot</label>
-                <select class="form-select" name="timeslot_id" required>
+                <select class="form-select" name="time_slot_id" required>
                   <option value="">Select Time Slot</option>
                   <% timeslots.forEach(slot => { %>
                     <option value="<%= slot.time_slot_id %>"><%= slot.date %></option>

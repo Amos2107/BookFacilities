@@ -11,10 +11,10 @@
     <form action="/bookings/edit/<%= booking.booking_id %>" method="POST" class="card p-4">
       
       <div class="mb-3">
-        <label for="facility_id" class="form-label">Facility</label>
-        <select name="facility_id" id="facility_id" class="form-select" required>
+        <label for="facilities_id" class="form-label">Facility</label>
+        <select name="facilities_id" id="facilities_id" class="form-select" required>
           <% facilities.forEach(f => { %>
-            <option value="<%= f.facilities_id %>" <%= f.facilities_id === booking.facility_id ? "selected" : "" %>>
+            <option value="<%= f.facilities_id %>" <%= f.facilities_id === booking.facilities_id ? "selected" : "" %>>
               <%= f.name %>
             </option>
           <% }) %>
@@ -22,10 +22,10 @@
       </div>
 
       <div class="mb-3">
-        <label for="timeslot_id" class="form-label">Time Slot</label>
-        <select name="timeslot_id" id="timeslot_id" class="form-select" required>
+        <label for="time_slot_id" class="form-label">Time Slot</label>
+        <select name="time_slot_id" id="time_slot_id" class="form-select" required>
           <% timeslots.forEach(t => { %>
-            <option value="<%= t.time_slot_id %>" <%= t.time_slot_id === booking.timeslot_id ? "selected" : "" %>>
+            <option value="<%= t.time_slot_id %>" <%= t.time_slot_id === booking.time_slot_id ? "selected" : "" %>>
               <%= new Date(t.date).toDateString() %>
             </option>
           <% }) %>
