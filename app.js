@@ -216,7 +216,7 @@ app.get('/filter', (req, res) => {
 });
 
 app.get('/admin/users', checkAuthenticated, checkAdmin, (req, res) => {
-  db.query('SELECT id, username, email, dob, gender, role FROM users', (err, results) => {
+  db.query('SELECT user_id, username, email, dob, gender, role FROM users', (err, results) => {
     if (err) throw err;
     res.render('viewUsers', {
       users: results,
@@ -230,7 +230,7 @@ app.get('/admin/manage-users', checkAuthenticated, checkAdmin, (req, res) => {
   const search = req.query.search || '';
 
   const sql = `
-    SELECT id, username, email, dob, gender, role 
+    SELECT user_id, username, email, dob, gender, role 
     FROM users 
     WHERE username LIKE ? OR email LIKE ?
   `;
@@ -258,7 +258,7 @@ app.post('/admin/update-role/:id', checkAuthenticated, checkAdmin, (req, res) =>
   }
 
   // Get the current role of the user
-  const getUserQuery = 'SELECT role FROM users WHERE id = ?';
+  const getUserQuery = 'SELECT role FROM users WHERE user_id = ?';
   db.query(getUserQuery, [userId], (err, results) => {
     if (err) throw err;
 
@@ -284,7 +284,7 @@ app.post('/admin/update-role/:id', checkAuthenticated, checkAdmin, (req, res) =>
     }
 
     function updateUserRole() {
-      const sql = 'UPDATE users SET role = ? WHERE id = ?';
+      const sql = 'UPDATE users SET role = ? WHERE user_id = ?';
       db.query(sql, [newRole, userId], (err) => {
         if (err) throw err;
         req.flash('success', 'User role updated successfully');
@@ -298,7 +298,7 @@ app.post('/admin/delete-user/:id', checkAuthenticated, checkAdmin, (req, res) =>
   const userId = req.params.id;
 
   // Get user to delete
-  db.query('SELECT role FROM users WHERE id = ?', [userId], (err, results) => {
+  db.query('SELECT role FROM users WHERE user_id = ?', [userId], (err, results) => {
     if (err) throw err;
 
     const userToDelete = results[0];
@@ -327,7 +327,7 @@ app.post('/admin/delete-user/:id', checkAuthenticated, checkAdmin, (req, res) =>
     }
 
     function deleteUser() {
-      db.query('DELETE FROM users WHERE id = ?', [userId], (err) => {
+      db.query('DELETE FROM users WHERE user_id = ?', [userId], (err) => {
         if (err) throw err;
         req.flash('success', 'User deleted successfully');
         res.redirect('/admin/users');
@@ -342,6 +342,104 @@ app.get('/deleteFacilities/:id', checkAuthenticated, checkAdmin, (req, res) => {
   db.query(sql, [req.params.id], err => {
     if (err) return res.status(500).send('Error deleting facility');
     res.redirect('/');
+  });
+});
+
+// GET: Show booking form with success/error alerts
+app.get('/bookings/create', (req, res) => {
+  const success = req.query.success || 0;
+  const error = req.query.error || 0;
+
+  const getUsers = 'SELECT user_id, username FROM users';
+  const getFacilities = 'SELECT facilities_id, name FROM facilities';
+  const getTimeSlots = 'SELECT time_slot_id, slot FROM timeslots';
+
+  db.query(getUsers, (err, users) => {
+    if (err) return res.status(500).send('Error fetching users');
+    db.query(getFacilities, (err, facilities) => {
+      if (err) return res.status(500).send('Error fetching facilities');
+      db.query(getTimeSlots, (err, timeslots) => {
+        if (err) return res.status(500).send('Error fetching timeslots');
+
+        res.render('createBooking', {
+          users,
+          facilities,
+          timeslots,
+          success,
+          error
+        });
+      });
+    });
+  });
+});
+
+// POST: Handle booking form submission with availability check
+app.post('/bookings/create', (req, res) => {
+  const { user_id, facility_id, timeslot_id, booking_date } = req.body;
+
+  if (!user_id || !facility_id || !timeslot_id || !booking_date) {
+    return res.status(400).send('Please fill all fields.');
+  }
+
+  // Check if booking exists with same facility, timeslot, and date
+  const checkSql = `
+    SELECT COUNT(*) AS count FROM bookings
+    WHERE facility_id = ? AND timeslot_id = ? AND booking_date = ?
+  `;
+
+  db.query(checkSql, [facility_id, timeslot_id, booking_date], (err, results) => {
+    if (err) {
+      console.error('Error checking availability:', err);
+      return res.status(500).send('Database error checking availability');
+    }
+
+    if (results[0].count > 0) {
+      // Redirect with error query param to show error message
+      return res.redirect('/bookings/create?error=1');
+    }
+
+    // Insert booking if available
+    const insertSql = 'INSERT INTO bookings (user_id, facility_id, timeslot_id, booking_date) VALUES (?, ?, ?, ?)';
+    db.query(insertSql, [user_id, facility_id, timeslot_id, booking_date], (err) => {
+      if (err) {
+        console.error('Error inserting booking:', err);
+        return res.status(500).send('Database error saving booking');
+      }
+
+      res.redirect('/bookings/create?success=1');
+    });
+  });
+});
+
+// Root redirect
+app.get('/', (req, res) => {
+  res.redirect('/bookings/create');
+});
+
+// GET: View all bookings
+app.get('/bookings', (req, res) => {
+  const sql = `
+    SELECT b.id AS booking_id, u.name AS user_name, f.name AS facility_name, 
+           t.slot AS time_slot, b.booking_date
+    FROM bookings b
+    JOIN users u ON b.user_id = u.id
+    JOIN facilities f ON b.facility_id = f.id
+    JOIN timeslots t ON b.timeslot_id = t.id
+    ORDER BY b.booking_date DESC
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error('Error fetching bookings:', err);
+      return res.status(500).send('Database error fetching bookings');
+    }
+
+    // Convert booking_date to JS Date object
+    results.forEach(booking => {
+      booking.booking_date = new Date(booking.booking_date);
+    });
+
+    res.render('viewBookings', { bookings: results });
   });
 });
 

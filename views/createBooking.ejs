@@ -9,7 +9,18 @@
     rel="stylesheet"
   />
 </head>
-<body class="bg-light">
+<body>
+  <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/">Rental Facilities</a>
+      <div class="collapse navbar-collapse">
+        <ul class="navbar-nav ms-auto">
+            <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
+            <li class="nav-item"><a class="nav-link" href="/register">Register</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
   <div class="container py-5">
     <div class="row justify-content-center">
       <div class="col-md-6">
@@ -39,7 +50,7 @@
                 <select class="form-select" name="user_id" required>
                   <option value="">Select User</option>
                   <% users.forEach(user => { %>
-                    <option value="<%= user.id %>"><%= user.name %></option>
+                    <option value="<%= user.user_id %>"><%= user.username %></option>
                   <% }); %>
                 </select>
                 <div class="invalid-feedback">Please select a user.</div>
@@ -50,7 +61,7 @@
                 <select class="form-select" name="facility_id" required>
                   <option value="">Select Facility</option>
                   <% facilities.forEach(facility => { %>
-                    <option value="<%= facility.id %>"><%= facility.name %></option>
+                    <option value="<%= facility.facilities_id %>"><%= facility.name %></option>
                   <% }); %>
                 </select>
                 <div class="invalid-feedback">Please select a facility.</div>
