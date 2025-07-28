@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Rental Rates Management</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .rate-card {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      margin-bottom: 20px;
+      background-color: #f9f9f9;
+    }
+    h1 {
+      color: #333;
+      text-align: center;
+    }
+    h2 {
+      color: #444;
+      margin-top: 0;
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+    }
+    input[type="time"],
+    input[type="number"] {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 150px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <h1>Manage Rental Rates</h1>
+
+  <!-- Weekday Peak -->
+  <div class="rate-card">
+    <h2>Weekday Peak Hours</h2>
+    <form method="POST" action="/update/weekday_peak">
+      <input type="hidden" name="rate_period_id" value="<%= rates.find(r => r.day_type === 'weekday' && r.rate_type === 'peak').rate_period_id %>">
+      
+      <label>Start Time:
+        <input type="time" name="time_start" 
+               value="<%= rates.find(r => r.day_type === 'weekday' && r.rate_type === 'peak').time_start.slice(0,5) %>" 
+               required>
+      </label>
+      
+      <label>End Time:
+        <input type="time" name="time_end" 
+               value="<%= rates.find(r => r.day_type === 'weekday' && r.rate_type === 'peak').time_end.slice(0,5) %>" 
+               required>
+      </label>
+      
+      <label>Rate Amount ($):
+        <input type="number" name="rate_amount" step="0.01" 
+               value="<%= rates.find(r => r.day_type === 'weekday' && r.rate_type === 'peak').rate_amount %>" 
+               required>
+      </label>
+      
+      <button type="submit">Update Weekday Peak</button>
+    </form>
+  </div>
+
+  <!-- Weekday Off-Peak -->
+  <div class="rate-card">
+    <h2>Weekday Off-Peak Hours</h2>
+    <form method="POST" action="/update/weekday_offpeak">
+      <input type="hidden" name="rate_period_id" value="<%= rates.find(r => r.day_type === 'weekday' && r.rate_type === 'off-peak').rate_period_id %>">
+      
+      <label>Start Time:
+        <input type="time" name="time_start" 
+               value="<%= rates.find(r => r.day_type === 'weekday' && r.rate_type === 'off-peak').time_start.slice(0,5) %>" 
+               required>
+      </label>
+      
+      <label>End Time:
+        <input type="time" name="time_end" 
+               value="<%= rates.find(r => r.day_type === 'weekday' && r.rate_type === 'off-peak').time_end.slice(0,5) %>" 
+               required>
+      </label>
+      
+      <label>Rate Amount ($):
+        <input type="number" name="rate_amount" step="0.01" 
+               value="<%= rates.find(r => r.day_type === 'weekday' && r.rate_type === 'off-peak').rate_amount %>" 
+               required>
+      </label>
+      
+      <button type="submit">Update Weekday Off-Peak</button>
+    </form>
+  </div>
+
+  <!-- Weekend Peak -->
+  <div class="rate-card">
+    <h2>Weekend Peak Hours</h2>
+    <form method="POST" action="/update/weekend_peak">
+      <input type="hidden" name="rate_period_id" value="<%= rates.find(r => r.day_type === 'weekend' && r.rate_type === 'peak').rate_period_id %>">
+      
+      <label>Start Time:
+        <input type="time" name="time_start" 
+               value="<%= rates.find(r => r.day_type === 'weekend' && r.rate_type === 'peak').time_start.slice(0,5) %>" 
+               required>
+      </label>
+      
+      <label>End Time:
+        <input type="time" name="time_end"
+value="<%= rates.find(r => r.day_type === 'weekend' && r.rate_type === 'peak').time_end.slice(0,5) %>" 
+               required>
+      </label>
+      
+      <label>Rate Amount ($):
+        <input type="number" name="rate_amount" step="0.01" 
+               value="<%= rates.find(r => r.day_type === 'weekend' && r.rate_type === 'peak').rate_amount %>" 
+               required>
+      </label>
+      
+      <button type="submit">Update Weekend Peak</button>
+    </form>
+  </div>
+
+  <!-- Weekend Off-Peak -->
+  <div class="rate-card">
+    <h2>Weekend Off-Peak Hours</h2>
+    <form method="POST" action="/update/weekend_offpeak">
+      <input type="hidden" name="rate_period_id" value="<%= rates.find(r => r.day_type === 'weekend' && r.rate_type === 'off-peak').rate_period_id %>">
+      
+      <label>Start Time:
+        <input type="time" name="time_start" 
+               value="<%= rates.find(r => r.day_type === 'weekend' && r.rate_type === 'off-peak').time_start.slice(0,5) %>" 
+               required>
+      </label>
+      
+      <label>End Time:
+        <input type="time" name="time_end" 
+               value="<%= rates.find(r => r.day_type === 'weekend' && r.rate_type === 'off-peak').time_end.slice(0,5) %>" 
+               required>
+      </label>
+      
+      <label>Rate Amount ($):
+        <input type="number" name="rate_amount" step="0.01" 
+               value="<%= rates.find(r => r.day_type === 'weekend' && r.rate_type === 'off-peak').rate_amount %>" 
+               required>
+      </label>
+      
+      <button type="submit">Update Weekend Off-Peak</button>
+    </form>
+  </div>
+</body>
+</html>

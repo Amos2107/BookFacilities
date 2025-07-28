@@ -9,20 +9,25 @@
     rel="stylesheet"
   />
 </head>
-<body>
+<body class="bg-light">
   <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
     <div class="container-fluid">
       <a class="navbar-brand" href="/">Rental Facilities</a>
+      <div class="collapse navbar-collapse">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
+        </ul>
+      </div>
     </div>
   </nav>
+
   <div class="container py-5">
     <div class="row justify-content-center">
-      <div class="col-md-6">
+      <div class="col-md-8">
         <div class="card shadow">
           <div class="card-body">
             <h3 class="text-center mb-4">Create Booking</h3>
 
-            <!-- Show success alert -->
             <% if (success == 1) { %>
               <div class="alert alert-success alert-dismissible fade show" role="alert">
                 Booking created successfully!
@@ -30,7 +35,6 @@
               </div>
             <% } %>
 
-            <!-- Show error alert if booking slot is taken -->
             <% if (error == 1) { %>
               <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 The selected facility and time slot are not available on the chosen date. Please choose another.
@@ -39,16 +43,19 @@
             <% } %>
 
             <form action="/bookings/create" method="POST" class="needs-validation" novalidate>
+              
+              <% if (role === 'admin') { %>
               <div class="mb-3">
                 <label class="form-label">User</label>
                 <select class="form-select" name="user_id" required>
                   <option value="">Select User</option>
                   <% users.forEach(user => { %>
                     <option value="<%= user.user_id %>"><%= user.username %></option>
-                  <% }); %>
+                  <% }) %>
                 </select>
                 <div class="invalid-feedback">Please select a user.</div>
               </div>
+              <% } %>
 
               <div class="mb-3">
                 <label class="form-label">Facility</label>
@@ -56,18 +63,18 @@
                   <option value="">Select Facility</option>
                   <% facilities.forEach(facility => { %>
                     <option value="<%= facility.facilities_id %>"><%= facility.name %></option>
-                  <% }); %>
+                  <% }) %>
                 </select>
                 <div class="invalid-feedback">Please select a facility.</div>
               </div>
 
               <div class="mb-3">
                 <label class="form-label">Time Slot</label>
-                <select class="form-select" name="timeslot_id" required>
+                <select class="form-select" name="time_slot_id" required>
                   <option value="">Select Time Slot</option>
                   <% timeslots.forEach(slot => { %>
-                    <option value="<%= slot.time_slot_id %>"><%= slot.date %></option>
-                  <% }); %>
+                    <option value="<%= slot.time_slot_id %>"><%= slot.time_range %></option>
+                  <% }) %>
                 </select>
                 <div class="invalid-feedback">Please select a time slot.</div>
               </div>
@@ -78,15 +85,34 @@
                 <div class="invalid-feedback">Please select a date.</div>
               </div>
 
-              <!-- Submit button -->
               <button type="submit" class="btn btn-primary w-100">Create Booking</button>
-
-              <!-- View all bookings button -->
               <a href="/bookings" class="btn btn-secondary mt-3 w-100">View All Bookings</a>
             </form>
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="mt-5">
+      <h4 class="mb-3">Rates</h4>
+      <table class="table table-bordered bg-white">
+        <thead class="table-light">
+          <tr>
+            <th>Facility</th>
+            <th>Time Slot</th>
+            <th>Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% rates.forEach(rate => { %>
+            <tr>
+              <td><%= rate.facility_name %></td>
+              <td><%= rate.time_range %></td>
+              <td>$<%= rate.price.toFixed(2) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
     </div>
   </div>
 

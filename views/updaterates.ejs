@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Update Rate Period</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .update-form {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    h1 {
+      color: #333;
+      margin-top: 0;
+    }
+    label {
+      display: block;
+      margin: 15px 0 5px;
+      font-weight: bold;
+    }
+    input[type="time"],
+    input[type="number"] {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 200px;
+    }
+    .button-group {
+      margin-top: 20px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    button.cancel {
+      background-color: #f44336;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <div class="update-form">
+    <h1>
+      <% if (rate.day_type === 'weekday' && rate.rate_type === 'peak') { %>
+        Update Weekday Peak Hours
+      <% } else if (rate.day_type === 'weekday' && rate.rate_type === 'off-peak') { %>
+        Update Weekday Off-Peak Hours
+      <% } else if (rate.day_type === 'weekend' && rate.rate_type === 'peak') { %>
+        Update Weekend Peak Hours
+      <% } else if (rate.day_type === 'weekend' && rate.rate_type === 'off-peak') { %>
+        Update Weekend Off-Peak Hours
+      <% } %>
+    </h1>
+
+    <form method="POST" action="/update/<%= rate.day_type %>_<%= rate.rate_type.replace('-', '') %>">
+      <input type="hidden" name="rate_period_id" value="<%= rate.rate_period_id %>">
+      
+      <label>Start Time:</label>
+      <input type="time" name="time_start" 
+             value="<%= rate.time_start.toString().slice(0,5) %>" 
+             required>
+      
+      <label>End Time:</label>
+      <input type="time" name="time_end" 
+             value="<%= rate.time_end.toString().slice(0,5) %>" 
+             required>
+      
+      <label>Rate Amount ($):</label>
+      <input type="number" name="rate_amount" step="0.01" 
+             value="<%= rate.rate_amount %>" 
+             min="0" required>
+      
+      <div class="button-group">
+        <button type="submit">Save Changes</button>
+        <a href="/rates"><button type="button" class="cancel">Cancel</button></a>
+      </div>
+    </form>
+  </div>
+</body>
+</html>

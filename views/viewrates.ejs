@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>View Rental Rates</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+      text-align: center;
+    }
+    .rate-card {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      margin-bottom: 20px;
+      background-color: #f9f9f9;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .back-button {
+      display: block;
+      margin-top: 20px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>Current Rental Rates</h1>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Period Type</th>
+        <th>Time Range</th>
+        <th>Rate</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% rates.forEach(rate => { %>
+        <tr>
+          <td>
+            <% if (rate.day_type === 'weekday' && rate.rate_type === 'peak') { %>
+              Weekday Peak
+            <% } else if (rate.day_type === 'weekday' && rate.rate_type === 'off-peak') { %>
+              Weekday Off-Peak
+            <% } else if (rate.day_type === 'weekend' && rate.rate_type === 'peak') { %>
+              Weekend Peak
+            <% } else if (rate.day_type === 'weekend' && rate.rate_type === 'off-peak') { %>
+              Weekend Off-Peak
+            <% } %>
+          </td>
+          <td>
+            <%= rate.time_start.slice(0,5) %> - <%= rate.time_end.slice(0,5) %>
+          </td>
+          <td>
+            $<%= rate.rate_amount.toFixed(2) %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+
+  <div class="back-button">
+    <a href="/">← Back to Home</a>
+  </div>
+</body>
+</html>

@@ -7,7 +7,13 @@
 </head>
 <body class="bg-light">
   <div class="container py-5">
-    <h2 class="mb-4">All Bookings</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2>All Bookings</h2>
+      <div>
+        <a href="/bookings/create" class="btn btn-primary">New Booking</a>
+        <a href="/logout" class="btn btn-danger">Logout</a>
+      </div>
+    </div>
 
     <% if (bookings.length === 0) { %>
       <div class="alert alert-warning">No bookings found.</div>
@@ -16,27 +22,40 @@
         <thead class="table-dark">
           <tr>
             <th>#</th>
-            <th>User</th>
+            <% if (role === 'admin') { %>
+              <th>User</th>
+            <% } %>
             <th>Facility</th>
             <th>Time Slot</th>
             <th>Date</th>
+            <% if (role === 'admin') { %>
+              <th>Actions</th>
+            <% } %>
           </tr>
         </thead>
         <tbody>
           <% bookings.forEach((b, index) => { %>
             <tr>
               <td><%= index + 1 %></td>
-              <td><%= b.user_name %></td>
+              <% if (role === 'admin') { %>
+                <td><%= b.username %></td>
+              <% } %>
               <td><%= b.facility_name %></td>
               <td><%= b.time_slot %></td>
-              <td><%= b.booking_date.toISOString().split('T')[0] %></td>
+              <td><%= new Date(b.booking_date).toISOString().split('T')[0] %></td>
+              <% if (role === 'admin') { %>
+                <td>
+                  <a href="/bookings/edit/<%= b.booking_id %>" class="btn btn-sm btn-warning">Edit</a>
+                  <form action="/bookings/delete/<%= b.booking_id %>" method="POST" style="display:inline;">
+                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
+                  </form>
+                </td>
+              <% } %>
             </tr>
           <% }) %>
         </tbody>
       </table>
     <% } %>
-
-    <a href="/bookings/create" class="btn btn-primary mt-3">Create New Booking</a>
   </div>
 </body>
 </html>
