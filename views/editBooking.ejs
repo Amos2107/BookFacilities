@@ -23,13 +23,14 @@
 
       <div class="mb-3">
         <label for="time_slot_id" class="form-label">Time Slot</label>
-        <select name="time_slot_id" id="time_slot_id" class="form-select" required>
-          <% timeslots.forEach(t => { %>
-            <option value="<%= t.time_slot_id %>" <%= t.time_slot_id === booking.time_slot_id ? "selected" : "" %>>
-              <%= new Date(t.date).toDateString() %>
-            </option>
-          <% }) %>
-        </select>
+        <select name="time_slot_id" class="form-select" required>
+  <option value="">Select Time Slot</option>
+  <% timeslots.forEach(slot => { %>
+    <option value="<%= slot.time_slot_id %>">
+      <%= slot.start_time.slice(0,5) %> – <%= slot.end_time.slice(0,5) %>
+    </option>
+  <% }) %>
+</select>
       </div>
 
       <div class="mb-3">

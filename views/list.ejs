@@ -33,10 +33,12 @@
             <% if (!user) {%>
                 <li class="nav-item">
                     <a class="nav-link" href="/register">Register</a>
-                </li> 
+                </li>
                 <li class="nav-item">
                     <a class="nav-link" href="/login">Login</a>
-                </li> 
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/timeslots">Time Slots</a>
             <% } else { %>
                 <li class="nav-item">
                     <a class="nav-link" href="/timeslots">Time Slots</a>
@@ -51,13 +53,13 @@
                 <% } %>
                 <li class="nav-item">
                     <a class="nav-link" href="/logout">Logout</a>
-                </li> 
+                </li>
             <% } %>
           </ul>
         </div>
       </div>
     </nav>
-
+ 
     <div class="container mt-4">
         <% if (messages.error) { %>
             <div class="alert alert-danger alert-dismissible fade show">
@@ -71,13 +73,13 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <% } %>
-
+ 
         <h2 class="mb-4">Time Slots Management</h2>
-        
+       
         <% if (user && user.role === 'admin') { %>
             <a href="/timeslots/add" class="btn btn-primary mb-3">Add New Time Slot</a>
         <% } %>
-
+ 
         <div class="table-responsive">
             <table class="table table-striped table-hover">
                 <thead class="table-dark">
@@ -109,7 +111,7 @@
                         <% if (user && user.role === 'admin') { %>
                         <td>
                             <a href="/timeslots/edit/<%= slot.time_slot_id %>" class="btn btn-sm btn-warning">Edit</a>
-                            <a href="/timeslots/delete/<%= slot.time_slot_id %>" class="btn btn-sm btn-danger" 
+                            <a href="/timeslots/delete/<%= slot.time_slot_id %>" class="btn btn-sm btn-danger"
                                onclick="return confirm('Are you sure you want to delete this time slot?')">Delete</a>
                         </td>
                         <% } %>
@@ -118,7 +120,7 @@
                 </tbody>
             </table>
         </div>
-
+ 
         <% if (timeSlots.length === 0) { %>
             <div class="alert alert-info">No time slots found.</div>
         <% } %>
@@ -144,7 +146,7 @@
     </div>
   </div>
 </div>
-
+ 
 <script>
   // Activate modal with slot data
   document.addEventListener('DOMContentLoaded', () => {
@@ -153,7 +155,7 @@
     const modalDate = document.getElementById('modalSlotDate');
     const modalTime = document.getElementById('modalSlotTime');
     const confirmBtn = document.getElementById('confirmDeleteBtn');
-
+ 
     document.querySelectorAll('[data-bs-target="#deleteModal"]').forEach(btn => {
       btn.addEventListener('click', () => {
         const slot = JSON.parse(btn.dataset.slot);

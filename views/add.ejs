@@ -46,10 +46,10 @@
             <% if (!user) {%>
                 <li class="nav-item">
                     <a class="nav-link" href="/register">Register</a>
-                </li> 
+                </li>
                 <li class="nav-item">
                     <a class="nav-link" href="/login">Login</a>
-                </li> 
+                </li>
             <% } else { %>
                 <li class="nav-item">
                     <a class="nav-link" href="/timeslots">All Slots</a>
@@ -64,67 +64,74 @@
                 <% } %>
                 <li class="nav-item">
                     <a class="nav-link" href="/logout">Logout</a>
-                </li> 
+                </li>
             <% } %>
           </ul>
         </div>
       </div>
     </nav>
-
-    <div class="container py-4">
+ 
+        <div class="container py-4">
         <div class="form-container">
             <div class="form-header">
                 <h2 class="mb-0">Add New Time Slot</h2>
                 <p class="text-muted mb-0">Create a new available time slot for facilities</p>
             </div>
-
-            <% if (messages.error) { %>
+ 
+            <% if (messages && messages.error) { %>
                 <div class="alert alert-danger alert-dismissible fade show">
                     <%= messages.error %>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             <% } %>
-
+ 
             <form method="POST" action="/timeslots/add">
                 <div class="mb-3">
                     <label for="facilities_id" class="form-label">Facility</label>
-                    <select class="form-select" id="facilities_name="facilities_id" required>
+                    <select class="form-select" id="facilities_id" name="facilities_id" required>
                         <option value="" selected disabled>Select a facility</option>
                         <% facilities.forEach(facility => { %>
-                            <option value="<%= facilities.facilities_id %>">
-                                <%= facilities.facilities_name %>
+                            <option value="<%= facility.facilities_id %>"
+                                <% if (typeof formData !== 'undefined' && formData.facilities_id == facility.facilities_id) { %>
+                                    selected
+                                <% } %>>
+                                <%= facility.name %>
                             </option>
                         <% }); %>
                     </select>
                 </div>
-
+ 
                 <div class="mb-3">
                     <label for="date" class="form-label">Date</label>
                     <input type="date" class="form-control" id="date" name="date" required
-                           min="<%= new Date().toISOString().split('T')[0] %>">
+                           min="<%= new Date().toISOString().split('T')[0] %>"
+                           value="<%= (formData && formData.date) ? formData.date : new Date().toISOString().split('T')[0] %>">
                 </div>
-
+ 
                 <div class="mb-3 time-inputs">
                     <div class="form-group">
                         <label for="start_time" class="form-label">Start Time</label>
-                        <input type="time" class="form-control" id="start_time" name="start_time" 
-                               step="900" min="08:00" max="22:00" required>
+                        <input type="time" class="form-control" id="start_time" name="start_time"
+                               step="900" min="08:00" max="22:00" required
+                               value="<%= (formData && formData.start_time) ? formData.start_time : '' %>">
                     </div>
                     <div class="form-group">
                         <label for="end_time" class="form-label">End Time</label>
-                        <input type="time" class="form-control" id="end_time" name="end_time" 
-                               step="900" min="08:00" max="22:00" required>
+                        <input type="time" class="form-control" id="end_time" name="end_time"
+                               step="900" min="08:00" max="22:00" required
+                               value="<%= (formData && formData.end_time) ? formData.end_time : '' %>">
                     </div>
                 </div>
-
+ 
                 <div class="mb-4">
                     <div class="form-check form-switch is-available-toggle">
-                        <input class="form-check-input" type="checkbox" id="is_available" 
-                               name="is_available" checked style="width: 3em; height: 1.5em;">
+                        <input class="form-check-input" type="checkbox" id="is_available"
+                               name="is_available" <%= (!formData || formData.is_available == 1) ? 'checked' : '' %>
+                               style="width: 3em; height: 1.5em;">
                         <label class="form-check-label" for="is_available">Make this slot available for booking</label>
                     </div>
                 </div>
-
+ 
                 <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                     <a href="/timeslots" class="btn btn-outline-secondary me-md-2">Cancel</a>
                     <button type="submit" class="btn btn-primary">Add Time Slot</button>
@@ -132,34 +139,34 @@
             </form>
         </div>
     </div>
-
+ 
     <script>
-        // Set default time values and validation
         document.addEventListener('DOMContentLoaded', function() {
             const today = new Date();
             const dateInput = document.getElementById('date');
-            
-            // Set default date to today if empty
-            if (!dateInput.value) {
-                dateInput.value = today.toISOString().split('T')[0];
-            }
-            
-            // Set default start time to next full hour
-            const nextHour = today.getHours() + 1;
-            document.getElementById('start_time').value = `${nextHour.toString().padStart(2, '0')}:00`;
-            
-            // Set default end time to start time + 1 hour
-            document.getElementById('end_time').value = `${(nextHour + 1).toString().padStart(2, '0')}:00`;
-            
-            // Time validation
             const startTimeInput = document.getElementById('start_time');
             const endTimeInput = document.getElementById('end_time');
-            
-            startTimeInput.addEventListener('change', function() {
-                endTimeInput.min = this.value;
-                if (endTimeInput.value < this.value) {
-                    endTimeInput.value = this.value;
+           
+            // Only set defaults if no values exist
+            if (!startTimeInput.value) {
+                const now = new Date();
+                const nextHour = now.getHours() + 1;
+                const formattedHour = nextHour.toString().padStart(2, '0');
+                startTimeInput.value = `${formattedHour}:00`;
+               
+                // Set end time only if it's also empty
+                if (!endTimeInput.value) {
+                    const endHour = (nextHour + 1).toString().padStart(2, '0');
+                    endTimeInput.value = `${endHour}:00`;
                 }
+            }
+ 
+            // Time validation
+            startTimeInput.addEventListener('change', function() {
+                if (endTimeInput.value && endTimeInput.value < this.value) {
+                    endTimeInput.value = '';
+                }
+                endTimeInput.min = this.value;
             });
         });
     </script>

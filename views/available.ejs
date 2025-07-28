@@ -39,10 +39,10 @@
             <% if (!user) {%>
                 <li class="nav-item">
                     <a class="nav-link" href="/register">Register</a>
-                </li> 
+                </li>
                 <li class="nav-item">
                     <a class="nav-link" href="/login">Login</a>
-                </li> 
+                </li>
             <% } else { %>
                 <li class="nav-item">
                     <a class="nav-link" href="/timeslots">All Slots</a>
@@ -57,13 +57,13 @@
                 <% } %>
                 <li class="nav-item">
                     <a class="nav-link" href="/logout">Logout</a>
-                </li> 
+                </li>
             <% } %>
           </ul>
         </div>
       </div>
     </nav>
-
+ 
     <div class="container mt-4">
         <% if (messages.error) { %>
             <div class="alert alert-danger alert-dismissible fade show">
@@ -71,28 +71,32 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <% } %>
-
+ 
         <h2 class="mb-4">Available Time Slots</h2>
-        
+       
         <!-- Filter Section -->
         <div class="filter-section mb-4">
             <form method="GET" action="/timeslots/available">
                 <div class="row g-3">
                     <div class="col-md-5">
                         <label for="date" class="form-label">Date</label>
-                        <input type="date" class="form-control" id="date" name="date" 
+                        <input type="date" class="form-control" id="date" name="date"
                                value="<%= selectedDate || '' %>">
                     </div>
                     <div class="col-md-5">
                         <label for="facilities_id" class="form-label">Facility</label>
                         <select class="form-select" id="facilities_id" name="facilities_id">
                             <option value="">All Facilities</option>
-                            <% facilities.forEach(facility => { %>
-                                <option value="<%= facilities.facilities_id %>" 
-                                    <%= selectedFacility == facilities.facilities_id ? 'selected' : '' %>>
-                                    <%= facilities.facilities_name %>
-                                </option>
-                            <% }); %>
+                            <% if (facilities && facilities.length > 0) { %>
+                                <% facilities.forEach(facility => { %>
+                                    <option value="<%= facility.facilities_id %>"
+                                        <%= selectedFacility == facility.facilities_id ? 'selected' : '' %>>
+                                        <%= facility.name %>
+                                    </option>
+                                <% }); %>
+                            <% } else { %>
+                                <option value="" disabled>No facilities available</option>
+                            <% } %>
                         </select>
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
@@ -101,31 +105,30 @@
                 </div>
             </form>
         </div>
-
+ 
         <!-- Available Slots Display -->
-        <% if (availableSlots.length > 0) { %>
+        <% if (availableSlots && availableSlots.length > 0) { %>
             <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
                 <% availableSlots.forEach(slot => { %>
                 <div class="col">
                     <div class="card h-100 slot-card">
                         <div class="card-body">
                             <h5 class="card-title">
-                                <span class="badge facility-badge me-2"><%= slot.facility_name %></span>
+                                <span class="badge facility-badge me-2"><%= slot.name %></span>
                                 <%= slot.start_time %> - <%= slot.end_time %>
                             </h5>
                             <h6 class="card-subtitle mb-2 text-muted">
-                                <%= new Date(slot.date).toLocaleDateString('en-US', { 
-                                    weekday: 'short', 
-                                    year: 'numeric', 
-                                    month: 'short', 
-                                    day: 'numeric' 
+                                <%= new Date(slot.date).toLocaleDateString('en-US', {
+                                    weekday: 'short',
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
                                 }) %>
                             </h6>
                             <div class="d-flex justify-content-between align-items-center mt-3">
                                 <span class="badge bg-success">Available</span>
                                 <% if (user) { %>
-                                    <!-- This would link to the booking system (handled by another team) -->
-                                    <a href="#" class="btn btn-sm btn-outline-primary">Request Booking</a>
+                                    <a href="/bookings/add?slot_id=<%= slot.time_slot_id %>" class="btn btn-sm btn-outline-primary">Request Booking</a>
                                 <% } else { %>
                                     <a href="/login" class="btn btn-sm btn-outline-secondary">Login to Book</a>
                                 <% } %>
@@ -144,7 +147,7 @@
             </div>
         <% } %>
     </div>
-
+ 
     <script>
         // Set default date to today if no date selected
         document.addEventListener('DOMContentLoaded', function() {

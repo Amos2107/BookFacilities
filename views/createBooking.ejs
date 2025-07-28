@@ -58,15 +58,16 @@
               </div>
 
               <div class="mb-3">
-                <label class="form-label">Time Slot</label>
-                <select class="form-select" name="time_slot_id" required>
-                  <option value="">Select Time Slot</option>
-                  <% timeslots.forEach(slot => { %>
-                    <option value="<%= slot.time_slot_id %>"><%= slot.date %></option>
-                  <% }); %>
-                </select>
-                <div class="invalid-feedback">Please select a time slot.</div>
-              </div>
+  <label class="form-label">Time Slot</label>
+  <select name="time_slot_id" class="form-select" required>
+  <option value="">Select time slot</option>
+  <% timeslots.forEach(slot => { %>
+    <option value="<%= slot.time_slot_id %>"><%= slot.label %></option>
+  <% }); %>
+</select>
+
+  <div class="invalid-feedback">Please select a time slot.</div>
+</div>
 
               <div class="mb-3">
                 <label class="form-label">Booking Date</label>

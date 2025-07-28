@@ -352,15 +352,21 @@ app.get('/bookings/create', checkAuthenticated, (req, res) => {
 
   db.query('SELECT facilities_id, name FROM facilities', (err, facilities) => {
     if (err) return res.status(500).send('Error fetching facilities');
-    db.query('SELECT time_slot_id, date, start_time, end_time FROM time_slots', (err, timeslots) => {
-      if (err) return res.status(500).send('Error fetching timeslots');
-      // Render without users list
-      res.render('createBooking', {
-        user: req.session.user,   // so template knows who's booking
-        facilities,
-        timeslots,
-        success,
-        error
+    db.query(
+  'SELECT time_slot_id, start_time, end_time FROM time_slots ORDER BY start_time',
+  (err, rows) => {
+    if (err) return res.status(500).send('Error fetching timeslots');
+    // build a “HH:MM – HH:MM” string for each slot
+    const timeslots = rows.map(r => ({
+      time_slot_id: r.time_slot_id,
+      label:        r.start_time.slice(0,5) + ' – ' + r.end_time.slice(0,5)
+    }));
+    res.render('createBooking', {
+      user: req.session.user,
+      facilities,
+      timeslots,
+      success,
+      error
       });
     });
   });
@@ -518,12 +524,12 @@ app.get('/timeslots', checkAuthenticated, (req, res) => {
  
 // View available slots for a specific date
 app.get('/timeslots/available', checkAuthenticated, (req, res) => {
-    const { date, facilities_id } = req.query;
+    const { date, facilities_id } = req.query; // Changed to match form parameter name
    
     let query = `
         SELECT ts.*, f.name
         FROM time_slots ts
-        JOIN facilities f ON ts.facilities_id  = f.facilities_id
+        JOIN facilities f ON ts.facilities_id = f.facilities_id
         WHERE ts.is_available = 1
     `;
    
@@ -559,7 +565,7 @@ app.get('/timeslots/available', checkAuthenticated, (req, res) => {
                 availableSlots: results,
                 facilities,
                 selectedDate: date,
-                selectedFacility: facilities_id,
+                selectedFacility: facilities_id, // Changed to match
                 user: req.session.user,
                 messages: req.flash()
             });
@@ -572,32 +578,45 @@ app.get('/timeslots/add', checkAuthenticated, checkAdmin, (req, res) => {
     db.query('SELECT * FROM facilities', (error, facilities) => {
         if (error) {
             console.error('Error fetching facilities:', error);
+            req.flash('error', 'Failed to load facilities');
             facilities = [];
         }
        
         res.render('add', {
-            facilities,
+            facilities: facilities,
             user: req.session.user,
-            messages: req.flash()
+            messages: req.flash(),
+            formData: {
+                date: new Date().toISOString().split('T')[0], // Default to today
+                start_time: '',
+                end_time: '',
+                facilities_id: '',
+                is_available: true
+            }
         });
     });
 });
  
 app.post('/timeslots/add', checkAuthenticated, checkAdmin, (req, res) => {
     const { date, start_time, end_time, facilities_id } = req.body;
-    const is_available = req.body.is_available ? 1 : 0;
-   
+    const is_available = req.body.is_available === 'on' ? 1 : 0;
+ 
     // Basic validation
     if (!date || !start_time || !end_time || !facilities_id) {
         req.flash('error', 'All fields are required');
         return res.redirect('/timeslots/add');
     }
-   
-    if (start_time >= end_time) {
+ 
+    // Time validation
+    const startDate = new Date(`${date}T${start_time}`);
+    const endDate = new Date(`${date}T${end_time}`);
+ 
+    if (startDate >= endDate) {
         req.flash('error', 'End time must be after start time');
         return res.redirect('/timeslots/add');
     }
-   
+ 
+    // Database operation
     const query = `
         INSERT INTO time_slots
         (date, start_time, end_time, is_available, facilities_id)
@@ -607,7 +626,7 @@ app.post('/timeslots/add', checkAuthenticated, checkAdmin, (req, res) => {
     db.query(query, [date, start_time, end_time, is_available, facilities_id],
     (error, results) => {
         if (error) {
-            console.error('Error adding time slot:', error);
+            console.error('Error:', error);
             req.flash('error', 'Failed to add time slot');
             return res.redirect('/timeslots/add');
         }
@@ -634,11 +653,11 @@ app.get('/timeslots/edit/:id', checkAuthenticated, checkAdmin, (req, res) => {
                 return res.redirect('/timeslots');
             }
            
-            const timeSlot = results[0];
-            timeSlot.is_available = timeSlot.is_available === 1;
+            const timeslot = results[0];
+            timeslot.is_available = timeslot.is_available === 1;
            
             res.render('edit', {
-                timeSlot,
+                timeslot,
                 facilities,
                 user: req.session.user,
                 messages: req.flash()
@@ -697,6 +716,71 @@ app.get('/timeslots/delete/:id', checkAuthenticated, checkAdmin, (req, res) => {
        
         res.redirect('/timeslots');
     });
+});
+
+// GET /rates
+app.get('/rates', (req, res) => {
+  db.query('SELECT * FROM RatePeriod', (err, rows) => {
+    if (err) {
+      console.error('DB error fetching rates:', err);
+      return res.status(500).send('Database error: ' + err.message);
+    }
+    // Convert rate_amount strings → numbers
+    const rates = rows.map(r => ({
+      ...r,
+      rate_amount: Number(r.rate_amount)
+    }));
+    res.render('rates', { rates });
+  });
+});
+
+// GET /update/:day_type
+app.get('/update/:day_type', (req, res) => {
+  const day_type = req.params.day_type;
+  db.query(
+    'SELECT * FROM RatePeriod WHERE day_type = ?',
+    [day_type],
+    (err, rows) => {
+      if (err) {
+        console.error('DB error fetching rate:', err);
+        return res.status(500).send('Database error: ' + err.message);
+      }
+      if (rows.length === 0) return res.status(404).send('Rate not found');
+      res.render('updaterates', { rate: rows[0] });
+    }
+  );
+});
+
+// POST /update/:period_type
+app.post('/update/:period_type', (req, res) => {
+  const { rate_period_id, time_start, time_end, rate_amount } = req.body;
+  db.query(
+    'UPDATE RatePeriod SET time_start = ?, time_end = ?, rate_amount = ? WHERE rate_period_id = ?',
+    [time_start, time_end, parseFloat(rate_amount), rate_period_id],
+    err => {
+      if (err) {
+        console.error('DB error updating rate:', err);
+        return res.status(500).send('Database error: ' + err.message);
+      }
+      res.redirect('/rates?success=true');
+    }
+  );
+});
+
+// GET /viewrates — list all RatePeriod entries (read‑only)
+app.get('/viewrates', (req, res) => {
+  db.query('SELECT * FROM RatePeriod', (err, rows) => {
+    if (err) {
+      console.error('DB error fetching rates:', err);
+      return res.status(500).send('Database error: ' + err.message);
+    }
+    // convert string amounts → numbers
+    const rates = rows.map(r => ({
+      ...r,
+      rate_amount: Number(r.rate_amount)
+    }));
+    res.render('viewrates', { rates });
+  });
 });
 
 // ======= Start Server =======
