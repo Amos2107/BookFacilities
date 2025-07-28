@@ -345,145 +345,170 @@ app.get('/deleteFacilities/:id', checkAuthenticated, checkAdmin, (req, res) => {
   });
 });
  
-// GET: Show booking form with success/error alerts
+// ---------- CREATE (GET form + POST submission) ----------
+
+// Show booking form
 app.get('/bookings/create', checkAuthenticated, (req, res) => {
-  const success = req.query.success || 0;
-  const error = req.query.error || 0;
- 
   db.query('SELECT facilities_id, name FROM facilities', (err, facilities) => {
     if (err) return res.status(500).send('Error fetching facilities');
     db.query(
-  'SELECT time_slot_id, start_time, end_time FROM time_slots ORDER BY start_time',
-  (err, rows) => {
-    if (err) return res.status(500).send('Error fetching timeslots');
-    // build a “HH:MM – HH:MM” string for each slot
-    const timeslots = rows.map(r => ({
-      time_slot_id: r.time_slot_id,
-      label:        r.start_time.slice(0,5) + ' – ' + r.end_time.slice(0,5)
-    }));
-    res.render('createBooking', {
-      user: req.session.user,
-      facilities,
-      timeslots,
-      success,
-      error
-      });
-    });
+      'SELECT time_slot_id, start_time, end_time FROM time_slots ORDER BY start_time',
+      (err, rows) => {
+        if (err) return res.status(500).send('Error fetching time slots');
+
+        const timeslots = rows.map(r => ({
+          time_slot_id: r.time_slot_id,
+          label: r.start_time.slice(0, 5) + ' – ' + r.end_time.slice(0, 5),
+        }));
+
+        res.render('createBooking', {
+          user: req.session.user,
+          facilities,
+          timeslots,
+        });
+      }
+    );
   });
 });
- 
-// POST: Handle booking form submission with availability check
-app.post('/bookings/create', (req, res) => {
-  const user_id      = req.session.user.user_id;
-  const facilities_id = req.body.facilities_id;
-  const time_slot_id  = req.body.time_slot_id;
-  const booking_date  = req.body.booking_date;
- 
- 
+
+// Handle booking creation
+app.post('/bookings/create', checkAuthenticated, (req, res) => {
+  const user_id = req.session.user.user_id;
+  const { facilities_id, time_slot_id, booking_date } = req.body;
+
   if (!user_id || !facilities_id || !time_slot_id || !booking_date) {
     return res.status(400).send('Please fill all fields.');
   }
- 
-  // Check if booking exists with same facility, timeslot, and date
+
+  // Check availability
   const checkSql = `
     SELECT COUNT(*) AS count FROM bookings
     WHERE facilities_id = ? AND time_slot_id = ? AND booking_date = ?
   `;
- 
   db.query(checkSql, [facilities_id, time_slot_id, booking_date], (err, results) => {
-    if (err) {
-      console.error('Error checking availability:', err);
-      return res.status(500).send('Database error checking availability');
-    }
- 
+    if (err) return res.status(500).send('Error checking availability');
+
     if (results[0].count > 0) {
-      // Redirect with error query param to show error message
-      return res.redirect('/bookings/create?error=1');
+      return res.status(400).send('This slot is already booked.');
     }
- 
-    // Insert booking if available
-    const insertSql = 'INSERT INTO bookings (user_id, facilities_id, time_slot_id, booking_date) VALUES (?, ?, ?, ?)';
+
+    // Insert booking
+    const insertSql = `
+      INSERT INTO bookings (user_id, facilities_id, time_slot_id, booking_date)
+      VALUES (?, ?, ?, ?)
+    `;
     db.query(insertSql, [user_id, facilities_id, time_slot_id, booking_date], (err) => {
-      if (err) {
-        console.error('Error inserting booking:', err);
-        return res.status(500).send('Database error saving booking');
-      }
- 
-      res.redirect('/bookings/create?success=1');
+      if (err) return res.status(500).send('Error saving booking');
+      res.redirect('/bookings');
     });
   });
 });
- 
-// Root redirect
-app.get('/', (req, res) => {
-  res.redirect('/bookings/create');
-});
- 
-// VIEW ALL BOOKINGS
+
+// ---------- READ (View All + View One) ----------
+
+// View all bookings
 app.get('/bookings', checkAuthenticated, (req, res) => {
   const sql = `
     SELECT
       b.booking_id,
       u.username AS user_name,
       f.name     AS facility_name,
-      -- build "HH:MM–HH:MM" from your start/end times
       CONCAT(
-        DATE_FORMAT(ts.start_time, '%H:%i'),
-        '–',
-        DATE_FORMAT(ts.end_time,   '%H:%i')
+        DATE_FORMAT(ts.start_time, '%H:%i'), '–', DATE_FORMAT(ts.end_time, '%H:%i')
       ) AS time_slot,
       b.booking_date
     FROM bookings b
-    JOIN users      u  ON b.user_id       = u.user_id
-    JOIN facilities f  ON b.facilities_id = f.facilities_id
-    JOIN time_slots ts ON b.time_slot_id  = ts.time_slot_id
+    JOIN users      u ON b.user_id = u.user_id
+    JOIN facilities f ON b.facilities_id = f.facilities_id
+    JOIN time_slots ts ON b.time_slot_id = ts.time_slot_id
     ORDER BY b.booking_date DESC, ts.start_time
   `;
- 
+
   db.query(sql, (err, bookings) => {
-    if (err) {
-      console.error('Error fetching bookings:', err);
-      return res.status(500).send('Database error fetching bookings');
-    }
-    // Pass the array of booking objects straight to your template
-    res.render('viewBookings', {
-      bookings,
-      user: req.session.user
-    });
+    if (err) return res.status(500).send('Error fetching bookings');
+    res.render('viewBookings', { bookings, user: req.session.user });
   });
 });
- 
-// VIEW ALL BOOKINGS
-app.get('/bookings', checkAuthenticated, (req, res) => {
+
+// View one booking (by ID)
+app.get('/bookings/:id', checkAuthenticated, (req, res) => {
   const sql = `
     SELECT
       b.booking_id,
       u.username AS user_name,
-      f.name     AS facility_name,
-      -- build "HH:MM–HH:MM" from your start/end times
+      f.name AS facility_name,
       CONCAT(
-        DATE_FORMAT(ts.start_time, '%H:%i'),
-        '–',
-        DATE_FORMAT(ts.end_time,   '%H:%i')
+        DATE_FORMAT(ts.start_time, '%H:%i'), '–', DATE_FORMAT(ts.end_time, '%H:%i')
       ) AS time_slot,
       b.booking_date
     FROM bookings b
-    JOIN users      u  ON b.user_id       = u.user_id
-    JOIN facilities f  ON b.facilities_id = f.facilities_id
-    JOIN time_slots ts ON b.time_slot_id  = ts.time_slot_id
-    ORDER BY b.booking_date DESC, ts.start_time
+    JOIN users      u ON b.user_id = u.user_id
+    JOIN facilities f ON b.facilities_id = f.facilities_id
+    JOIN time_slots ts ON b.time_slot_id = ts.time_slot_id
+    WHERE b.booking_id = ?
   `;
- 
-  db.query(sql, (err, bookings) => {
-    if (err) {
-      console.error('Error fetching bookings:', err);
-      return res.status(500).send('Database error fetching bookings');
-    }
-    // Pass the array of booking objects straight to your template
-    res.render('viewBookings', {
-      bookings,
-      user: req.session.user
+  db.query(sql, [req.params.id], (err, results) => {
+    if (err) return res.status(500).send('Error fetching booking');
+    if (results.length === 0) return res.status(404).send('Booking not found');
+    res.render('viewBooking', { booking: results[0], user: req.session.user });
+  });
+});
+
+// ---------- UPDATE (GET form + POST) ----------
+
+app.get('/bookings/edit/:id', checkAuthenticated, (req, res) => {
+  const bookingId = req.params.id;
+
+  db.query('SELECT * FROM bookings WHERE booking_id = ?', [bookingId], (err, results) => {
+    if (err) return res.status(500).send('Error retrieving booking');
+    if (results.length === 0) return res.status(404).send('Booking not found');
+
+    db.query('SELECT facilities_id, name FROM facilities', (err, facilities) => {
+      if (err) return res.status(500).send('Error fetching facilities');
+      db.query(
+        'SELECT time_slot_id, start_time, end_time FROM time_slots ORDER BY start_time',
+        (err, rows) => {
+          if (err) return res.status(500).send('Error fetching time slots');
+
+          const timeslots = rows.map(r => ({
+            time_slot_id: r.time_slot_id,
+            label: r.start_time.slice(0, 5) + ' – ' + r.end_time.slice(0, 5),
+          }));
+
+          res.render('editBooking', {
+            booking: results[0],
+            facilities,
+            timeslots,
+            user: req.session.user,
+          });
+        }
+      );
     });
+  });
+});
+
+app.post('/bookings/edit/:id', checkAuthenticated, (req, res) => {
+  const bookingId = req.params.id;
+  const { facilities_id, time_slot_id, booking_date } = req.body;
+
+  const sql = `
+    UPDATE bookings
+    SET facilities_id = ?, time_slot_id = ?, booking_date = ?
+    WHERE booking_id = ?
+  `;
+  db.query(sql, [facilities_id, time_slot_id, booking_date, bookingId], (err) => {
+    if (err) return res.status(500).send('Error updating booking');
+    res.redirect('/bookings');
+  });
+});
+
+// ---------- DELETE ----------
+
+app.get('/bookings/delete/:id', checkAuthenticated, (req, res) => {
+  const bookingId = req.params.id;
+  db.query('DELETE FROM bookings WHERE booking_id = ?', [bookingId], (err) => {
+    if (err) return res.status(500).send('Error deleting booking');
+    res.redirect('/bookings');
   });
 });
  
