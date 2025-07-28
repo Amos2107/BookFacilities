@@ -350,23 +350,24 @@ app.get('/bookings/create', checkAuthenticated, (req, res) => {
   const success = req.query.success || 0;
   const error = req.query.error || 0;
 
-  db.query('SELECT facilities_id, name FROM facilities', (err, facilities) => {
-    if (err) return res.status(500).send('Error fetching facilities');
-    db.query(
-  'SELECT time_slot_id, start_time, end_time FROM time_slots ORDER BY start_time',
-  (err, rows) => {
-    if (err) return res.status(500).send('Error fetching timeslots');
-    // build a “HH:MM – HH:MM” string for each slot
-    const timeslots = rows.map(r => ({
-      time_slot_id: r.time_slot_id,
-      label:        r.start_time.slice(0,5) + ' – ' + r.end_time.slice(0,5)
-    }));
-    res.render('createBooking', {
-      user: req.session.user,
-      facilities,
-      timeslots,
-      success,
-      error
+  const getUsers = 'SELECT user_id, username FROM users';
+  const getFacilities = 'SELECT facilities_id, name FROM facilities';
+  const getTimeSlots = 'SELECT time_slot_id, date FROM time_slots';
+
+  db.query(getUsers, (err, users) => {
+    if (err) return res.status(500).send('Error fetching users');
+    db.query(getFacilities, (err, facilities) => {
+      if (err) return res.status(500).send('Error fetching facilities');
+      db.query(getTimeSlots, (err, timeslots) => {
+        if (err) return res.status(500).send('Error fetching timeslots');
+
+        res.render('createBooking', {
+          users,
+          facilities,
+          timeslots,
+          success,
+          error
+        });
       });
     });
   });
