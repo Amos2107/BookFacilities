@@ -22,13 +22,11 @@
       <div class="collapse navbar-collapse">
         <ul class="navbar-nav ms-auto">
           <% if (user && user.role === 'admin') { %>
-            <li class="nav-item"><a class="nav-link" href="/updaterates">Update Rates</a></li>
             <li class="nav-item"><a class="nav-link" href="/addFacilities">Add Facility</a></li>
             <li class="nav-item"><a class="nav-link" href="/admin/users">Manage Users</a></li>
           <% } %>
           <% if (user) { %>
             <li class="nav-item"><a class="nav-link" href="/bookings/create">Book Now</a></li>
-            <li class="nav-item"><a class="nav-link" href="/viewrates">View Rates</a></li>
             <li class="nav-item"><a class="nav-link" href="/logout">Logout</a></li>
           <% } else { %>
             <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
@@ -75,8 +73,8 @@
       <div class="row">
         <% facilities.forEach(facility => { %>
           <div class="col-sm-6 col-md-4 mb-4">
-            <div class="card zoom-img" style="width: 100%;">
-              <img class="card-img-top" src="/images/<%= facility.image %>" alt="Facility Image" style="height: 200px; object-fit: cover;">
+            <div class="card" style="width: 100%;">
+              <img class="card-img-top zoom-img" src="/images/<%= facility.image %>" alt="Facility Image" style="height: 200px; object-fit: cover;">
               <div class="card-body">
                 <h4 class="card-title">
                   <a href="/facilities/<%= facility.facilities_id %>"><%= facility.name %></a>

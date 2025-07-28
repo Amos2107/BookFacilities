@@ -87,12 +87,12 @@
 
             <form method="POST" action="/timeslots/add">
                 <div class="mb-3">
-                    <label for="facilities_id" class="form-label">Facility</label>
-                    <select class="form-select" id="facilities_id" name="facilities_id" required>
+                    <label for="facility_id" class="form-label">Facility</label>
+                    <select class="form-select" id="facility_id" name="facility_id" required>
                         <option value="" selected disabled>Select a facility</option>
                         <% facilities.forEach(facility => { %>
-                            <option value="<%= facilities.facilities_id %>">
-                                <%= facilities.facilities_name %>
+                            <option value="<%= facility.facility_id %>">
+                                <%= facility.facility_name %>
                             </option>
                         <% }); %>
                     </select>

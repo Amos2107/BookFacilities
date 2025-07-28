@@ -35,12 +35,6 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
 
-// ---------- Auth Middleware ----------
-function isLoggedIn(req, res, next) {
-  if (!req.session.user_id) return res.redirect("/bookings");
-  next();
-}
-
 app.use(session({
   secret: 'secret',
   resave: false,
@@ -351,159 +345,108 @@ app.get('/deleteFacilities/:id', checkAuthenticated, checkAdmin, (req, res) => {
   });
 });
 
-// ---------- CREATE BOOKING ----------
-app.get("/bookings/create", isLoggedIn, (req, res) => {
-  const getFacilities = "SELECT facilities_id, name FROM facilities";
-  const getTimeSlots = "SELECT time_slot_id, date FROM time_slots";
-  const getRates = `
-    SELECT r.price, f.name AS facility_name, t.date AS time_slot
-    FROM rates r
-    JOIN facilities f ON r.facilities_id = f.facilities_id
-    JOIN time_slots t ON r.time_slot_id = t.time_slot_id
-    ORDER BY f.name, t.date
-  `;
+// GET: Show booking form with success/error alerts
+app.get('/bookings/create', (req, res) => {
+  const success = req.query.success || 0;
+  const error = req.query.error || 0;
 
-  db.query(getFacilities, (err, facilities) => {
-    if (err) return res.status(500).send("Error fetching facilities");
-    db.query(getTimeSlots, (err, timeslots) => {
-      if (err) return res.status(500).send("Error fetching timeslots");
-      db.query(getRates, (err, rates) => {
-        if (err) return res.status(500).send("Error fetching rates");
+  const getUsers = 'SELECT user_id, username FROM users';
+  const getFacilities = 'SELECT facilities_id, name FROM facilities';
+  const getTimeSlots = 'SELECT time_slot_id, date FROM time_slots';
 
-        res.render("createBooking", { facilities, timeslots, rates });
+  db.query(getUsers, (err, users) => {
+    if (err) return res.status(500).send('Error fetching users');
+    db.query(getFacilities, (err, facilities) => {
+      if (err) return res.status(500).send('Error fetching facilities');
+      db.query(getTimeSlots, (err, timeslots) => {
+        if (err) return res.status(500).send('Error fetching timeslots');
+
+        res.render('createBooking', {
+          users,
+          facilities,
+          timeslots,
+          success,
+          error
+        });
       });
     });
   });
 });
 
-app.post("/bookings/create", isLoggedIn, (req, res) => {
-  const { facilities_id, time_slot_id, booking_date } = req.body;
-  const user_id = req.session.user_id;
+// POST: Handle booking form submission with availability check
+app.post('/bookings/create', (req, res) => {
+  const { user_id, facility_id, timeslot_id, booking_date } = req.body;
 
+  if (!user_id || !facility_id || !timeslot_id || !booking_date) {
+    return res.status(400).send('Please fill all fields.');
+  }
+
+  // Check if booking exists with same facility, timeslot, and date
   const checkSql = `
     SELECT COUNT(*) AS count FROM bookings
-    WHERE facilities_id = ? AND time_slot_id = ? AND booking_date = ?
+    WHERE facility_id = ? AND timeslot_id = ? AND booking_date = ?
   `;
 
-  db.query(checkSql, [facilities_id, time_slot_id, booking_date], (err, results) => {
-    if (err) return res.status(500).send("DB error");
+  db.query(checkSql, [facility_id, timeslot_id, booking_date], (err, results) => {
+    if (err) {
+      console.error('Error checking availability:', err);
+      return res.status(500).send('Database error checking availability');
+    }
 
     if (results[0].count > 0) {
-      return res.send("Slot already booked.");
+      // Redirect with error query param to show error message
+      return res.redirect('/bookings/create?error=1');
     }
 
-    const insertSql =
-      "INSERT INTO bookings (user_id, facilities_id, time_slot_id, booking_date) VALUES (?, ?, ?, ?)";
-    db.query(insertSql, [user_id, facilities_id, time_slot_id, booking_date], err => {
-      if (err) return res.status(500).send("DB insert error");
-      res.redirect("/bookings");
-    });
-  });
-});
-
-// ---------- VIEW BOOKINGS ----------
-app.get("/bookings", isLoggedIn, (req, res) => {
-  let sql;
-  let params = [];
-
-  if (req.session.role === "admin") {
-    sql = `
-      SELECT b.booking_id, u.username, f.name AS facility_name, t.date AS time_slot, b.booking_date
-      FROM bookings b
-      JOIN users u ON b.user_id = u.user_id
-      JOIN facilities f ON b.facilities_id = f.facilities_id
-      JOIN time_slots t ON b.time_slot_id = t.time_slot_id
-      ORDER BY b.booking_date DESC
-    `;
-  } else {
-    sql = `
-      SELECT b.booking_id, f.name AS facility_name, t.date AS time_slot, b.booking_date
-      FROM bookings b
-      JOIN facilities f ON b.facilities_id = f.facilities_id
-      JOIN time_slots t ON b.time_slot_id = t.time_slot_id
-      WHERE b.user_id = ?
-      ORDER BY b.booking_date DESC
-    `;
-    params = [req.session.user_id];
-  }
-
-  db.query(sql, params, (err, results) => {
-    if (err) return res.status(500).send("DB error");
-    res.render("viewBookings", { bookings: results, role: req.session.role });
-  });
-});
-
-// ---------- EDIT BOOKING ----------
-app.get("/bookings/edit/:booking_id", isLoggedIn, (req, res) => {
-  const bookingId = req.params.booking_id;
-
-  const sql = "SELECT * FROM bookings WHERE booking_id = ?";
-  db.query(sql, [bookingId], (err, results) => {
-    if (err) return res.status(500).send("DB error");
-    if (results.length === 0) return res.status(404).send("Not found");
-
-    const booking = results[0];
-
-    if (req.session.role !== "admin" && booking.user_id !== req.session.user_id) {
-      return res.status(403).send("Not allowed");
-    }
-
-    res.render("editBooking", { booking });
-  });
-});
-
-app.post("/bookings/edit/:booking_id", isLoggedIn, (req, res) => {
-  const bookingId = req.params.booking_id;
-  const { facilities_id, time_slot_id, booking_date } = req.body;
-
-  let sql, params;
-  if (req.session.role === "admin") {
-    sql = `
-      UPDATE bookings SET facilities_id=?, time_slot_id=?, booking_date=?
-      WHERE booking_id=?
-    `;
-    params = [facilities_id, time_slot_id, booking_date, bookingId];
-  } else {
-    sql = `
-      UPDATE bookings SET facilities_id=?, time_slot_id=?, booking_date=?
-      WHERE booking_id=? AND user_id=?
-    `;
-    params = [facilities_id, time_slot_id, booking_date,
-bookingId, req.session.user_id];
-  }
-
-  db.query(sql, params, (err, result) => {
-    if (err) return res.status(500).send("DB error");
-    if (result.affectedRows === 0) return res.status(403).send("Not allowed");
-    res.redirect("/bookings");
-  });
-});
-
-// ---------- DELETE BOOKING ----------
-app.post("/bookings/delete/:booking_id", isLoggedIn, (req, res) => {
-  const bookingId = req.params.booking_id;
-
-  if (req.session.role === "admin") {
-    db.query("DELETE FROM bookings WHERE booking_id = ?", [bookingId], err => {
-      if (err) return res.status(500).send("DB error");
-      res.redirect("/bookings");
-    });
-  } else {
-    db.query(
-      "DELETE FROM bookings WHERE booking_id = ? AND user_id = ?",
-      [bookingId, req.session.user_id],
-      (err, result) => {
-        if (err) return res.status(500).send("DB error");
-        if (result.affectedRows === 0) return res.status(403).send("Not allowed");
-        res.redirect("/bookings");
+    // Insert booking if available
+    const insertSql = 'INSERT INTO bookings (user_id, facility_id, timeslot_id, booking_date) VALUES (?, ?, ?, ?)';
+    db.query(insertSql, [user_id, facility_id, timeslot_id, booking_date], (err) => {
+      if (err) {
+        console.error('Error inserting booking:', err);
+        return res.status(500).send('Database error saving booking');
       }
-    );
-  }
+
+      res.redirect('/bookings/create?success=1');
+    });
+  });
+});
+
+// Root redirect
+app.get('/', (req, res) => {
+  res.redirect('/bookings/create');
+});
+
+// GET: View all bookings
+app.get('/bookings', (req, res) => {
+  const sql = `
+    SELECT b.id AS booking_id, u.name AS user_name, f.name AS facility_name, 
+           t.slot AS time_slot, b.booking_date
+    FROM bookings b
+    JOIN users u ON b.user_id = u.id
+    JOIN facilities f ON b.facility_id = f.id
+    JOIN timeslots t ON b.timeslot_id = t.id
+    ORDER BY b.booking_date DESC
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error('Error fetching bookings:', err);
+      return res.status(500).send('Database error fetching bookings');
+    }
+
+    // Convert booking_date to JS Date object
+    results.forEach(booking => {
+      booking.booking_date = new Date(booking.booking_date);
+    });
+
+    res.render('viewBookings', { bookings: results });
+  });
 });
 
 // ======================
 // TIME SLOT ROUTES
 // ======================
+ 
  
 // View all time slots
 app.get('/timeslots', checkAuthenticated, (req, res) => {
@@ -716,62 +659,6 @@ app.get('/timeslots/delete/:id', checkAuthenticated, checkAdmin, (req, res) => {
        
         res.redirect('/timeslots');
     });
-});
-
-app.get('/rates', async (req, res) => {
-  try {
-    const [rates] = await db.query('SELECT * FROM RatePeriod');
-    rates.forEach(rate => {
-      rate.rate_amount = Number(rate.rate_amount);
-    });
-    res.render('rates', { rates });
-  } catch (err) {
-    res.status(500).send('Database error: ' + err.message);
-  }
-});
-
-// GET route - renders the update form
-
-app.get('/update/:day_type', async (req, res) => {
-  try {
-    const day_type = req.params.day_type;
-    const [rows] = await db.query('SELECT * FROM RatePeriod WHERE day_type = ?', [day_type]);
-    if (rows.length === 0) return res.status(404).send('Rate not found');
-    const rate = rows[0];
-    res.render('updaterates', { rate });
-  } catch (err) {
-    res.status(500).send('Database error: ' + err.message);
-  }
-});
-
-// Handle form submission for ALL rate types
-app.post('/update/:period_type', async (req, res) => {
-  const { rate_period_id, time_start, time_end, rate_amount } = req.body;
-
-  try {
-    await db.query(
-      'UPDATE RatePeriod SET time_start = ?, time_end = ?, rate_amount = ? WHERE rate_period_id = ?',
-      [time_start, time_end, parseFloat(rate_amount), rate_period_id]
-    );
-    res.redirect('/rates?success=true'); // Redirect with success flag
-  } catch (err) {
-    console.error("Update error:", err);
-    res.status(500).send("Failed to update. Check server logs.");
-  }
-});
-
-// View-only route for users
-app.get('/viewrates', async (req, res) => {
-  try {
-    const [rates] = await db.query('SELECT * FROM RatePeriod');
-    // Convert rate_amount to numbers
-    rates.forEach(rate => {
-      rate.rate_amount = Number(rate.rate_amount);
-    });
-    res.render('viewrates', { rates });
-  } catch (err) {
-    res.status(500).send('Database error: ' + err.message);
-  }
 });
 
 // ======= Start Server =======
