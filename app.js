@@ -352,7 +352,7 @@ app.get('/bookings/create', (req, res) => {
 
   const getUsers = 'SELECT user_id, username FROM users';
   const getFacilities = 'SELECT facilities_id, name FROM facilities';
-  const getTimeSlots = 'SELECT time_slot_id, slot FROM timeslots';
+  const getTimeSlots = 'SELECT time_slot_id, date FROM time_slots';
 
   db.query(getUsers, (err, users) => {
     if (err) return res.status(500).send('Error fetching users');
@@ -441,6 +441,224 @@ app.get('/bookings', (req, res) => {
 
     res.render('viewBookings', { bookings: results });
   });
+});
+
+// ======================
+// TIME SLOT ROUTES
+// ======================
+ 
+ 
+// View all time slots
+app.get('/timeslots', checkAuthenticated, (req, res) => {
+    const query = `
+        SELECT ts.*, f.name AS facility_name
+        FROM time_slots ts
+        JOIN facilities f ON ts.facilities_id  = f.facilities_id
+        ORDER BY ts.date, ts.start_time
+    `;
+   
+    db.query(query, (error, results) => {
+        if (error) {
+            console.error('Error fetching time slots:', error);
+            req.flash('error', 'Failed to load time slots');
+            return res.redirect('/');
+        }
+       
+        // Convert is_available from TINYINT to boolean for easier handling
+        const timeSlots = results.map(slot => ({
+            ...slot,
+            is_available: slot.is_available === 1
+        }));
+       
+        res.render('list', {
+            timeSlots,
+            user: req.session.user,
+            messages: req.flash()
+        });
+    });
+});
+ 
+// View available slots for a specific date
+app.get('/timeslots/available', checkAuthenticated, (req, res) => {
+    const { date, facility_id } = req.query;
+   
+    let query = `
+        SELECT ts.*, f.name
+        FROM time_slots ts
+        JOIN facilities f ON ts.facilities_id  = f.facilities_id
+        WHERE ts.is_available = 1
+    `;
+   
+    const params = [];
+   
+    if (date) {
+        query += ' AND ts.date = ?';
+        params.push(date);
+    }
+   
+    if (facility_id) {
+        query += ' AND ts.facility_id = ?';
+        params.push(facility_id);
+    }
+   
+    query += ' ORDER BY ts.start_time';
+   
+    db.query(query, params, (error, results) => {
+        if (error) {
+            console.error('Error fetching available slots:', error);
+            req.flash('error', 'Failed to load available slots');
+            return res.redirect('/timeslots');
+        }
+       
+        // Get facilities for dropdown
+        db.query('SELECT * FROM facilities', (err, facilities) => {
+            if (err) {
+                console.error('Error fetching facilities:', err);
+                facilities = [];
+            }
+           
+            res.render('available', {
+                availableSlots: results,
+                facilities,
+                selectedDate: date,
+                selectedFacility: facility_id,
+                user: req.session.user,
+                messages: req.flash()
+            });
+        });
+    });
+});
+ 
+// Add new time slot (admin only)
+app.get('/timeslots/add', checkAuthenticated, checkAdmin, (req, res) => {
+    db.query('SELECT * FROM facilities', (error, facilities) => {
+        if (error) {
+            console.error('Error fetching facilities:', error);
+            facilities = [];
+        }
+       
+        res.render('add', {
+            facilities,
+            user: req.session.user,
+            messages: req.flash()
+        });
+    });
+});
+ 
+app.post('/timeslots/add', checkAuthenticated, checkAdmin, (req, res) => {
+    const { date, start_time, end_time, facilities_id } = req.body;
+    const is_available = req.body.is_available ? 1 : 0;
+   
+    // Basic validation
+    if (!date || !start_time || !end_time || !facilities_id) {
+        req.flash('error', 'All fields are required');
+        return res.redirect('/timeslots/add');
+    }
+   
+    if (start_time >= end_time) {
+        req.flash('error', 'End time must be after start time');
+        return res.redirect('/timeslots/add');
+    }
+   
+    const query = `
+        INSERT INTO time_slots
+        (date, start_time, end_time, is_available, facilities_id)
+        VALUES (?, ?, ?, ?, ?)
+    `;
+   
+    db.query(query, [date, start_time, end_time, is_available, facilities_id],
+    (error, results) => {
+        if (error) {
+            console.error('Error adding time slot:', error);
+            req.flash('error', 'Failed to add time slot');
+            return res.redirect('/timeslots/add');
+        }
+       
+        req.flash('success', 'Time slot added successfully');
+        res.redirect('/timeslots');
+    });
+});
+ 
+// Edit time slot (admin only)
+app.get('/timeslots/edit/:id', checkAuthenticated, checkAdmin, (req, res) => {
+    const slotId = req.params.id;
+   
+    db.query('SELECT * FROM facilities', (error, facilities) => {
+        if (error) {
+            console.error('Error fetching facilities:', error);
+            facilities = [];
+        }
+       
+        db.query('SELECT * FROM time_slots WHERE time_slot_id = ?', [slotId],
+        (err, results) => {
+            if (err || results.length === 0) {
+                req.flash('error', 'Time slot not found');
+                return res.redirect('/timeslots');
+            }
+           
+            const timeSlot = results[0];
+            timeSlot.is_available = timeSlot.is_available === 1;
+           
+            res.render('edit', {
+                timeSlot,
+                facilities,
+                user: req.session.user,
+                messages: req.flash()
+            });
+        });
+    });
+});
+ 
+app.post('/timeslots/edit/:id', checkAuthenticated, checkAdmin, (req, res) => {
+    const slotId = req.params.id;
+    const { date, start_time, end_time, facilities_id } = req.body;
+    const is_available = req.body.is_available ? 1 : 0;
+   
+    // Basic validation
+    if (!date || !start_time || !end_time || !facilities_id) {
+        req.flash('error', 'All fields are required');
+        return res.redirect(`/timeslots/edit/${slotId}`);
+    }
+   
+    if (start_time >= end_time) {
+        req.flash('error', 'End time must be after start time');
+        return res.redirect(`/timeslots/edit/${slotId}`);
+    }
+   
+    const query = `
+        UPDATE time_slots
+        SET date = ?, start_time = ?, end_time = ?, is_available = ?, facilities_id = ?
+        WHERE time_slot_id = ?
+    `;
+   
+    db.query(query, [date, start_time, end_time, is_available, facilities_id, slotId],
+    (error, results) => {
+        if (error) {
+            console.error('Error updating time slot:', error);
+            req.flash('error', 'Failed to update time slot');
+            return res.redirect(`/timeslots/edit/${slotId}`);
+        }
+       
+        req.flash('success', 'Time slot updated successfully');
+        res.redirect('/timeslots');
+    });
+});
+ 
+// Delete time slot (admin only)
+app.get('/timeslots/delete/:id', checkAuthenticated, checkAdmin, (req, res) => {
+    const slotId = req.params.id;
+   
+    db.query('DELETE FROM time_slots WHERE time_slot_id = ?', [slotId],
+    (error, results) => {
+        if (error) {
+            console.error('Error deleting time slot:', error);
+            req.flash('error', 'Failed to delete time slot');
+        } else {
+            req.flash('success', 'Time slot deleted successfully');
+        }
+       
+        res.redirect('/timeslots');
+    });
 });
 
 // ======= Start Server =======

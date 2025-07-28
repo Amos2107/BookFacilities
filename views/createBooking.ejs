@@ -13,12 +13,6 @@
   <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
     <div class="container-fluid">
       <a class="navbar-brand" href="/">Rental Facilities</a>
-      <div class="collapse navbar-collapse">
-        <ul class="navbar-nav ms-auto">
-            <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
-            <li class="nav-item"><a class="nav-link" href="/register">Register</a></li>
-        </ul>
-      </div>
     </div>
   </nav>
   <div class="container py-5">
@@ -72,7 +66,7 @@
                 <select class="form-select" name="timeslot_id" required>
                   <option value="">Select Time Slot</option>
                   <% timeslots.forEach(slot => { %>
-                    <option value="<%= slot.id %>"><%= slot.slot %></option>
+                    <option value="<%= slot.time_slot_id %>"><%= slot.date %></option>
                   <% }); %>
                 </select>
                 <div class="invalid-feedback">Please select a time slot.</div>
