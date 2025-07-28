@@ -416,30 +416,71 @@ app.get('/', (req, res) => {
   res.redirect('/bookings/create');
 });
 
-// GET: View all bookings
-app.get('/bookings', (req, res) => {
+// VIEW ALL BOOKINGS
+app.get('/bookings', checkAuthenticated, (req, res) => {
   const sql = `
-    SELECT b.id AS booking_id, u.name AS user_name, f.name AS facility_name, 
-           t.slot AS time_slot, b.booking_date
+    SELECT
+      b.booking_id,
+      u.username AS user_name,
+      f.name     AS facility_name,
+      -- build "HH:MM–HH:MM" from your start/end times
+      CONCAT(
+        DATE_FORMAT(ts.start_time, '%H:%i'),
+        '–',
+        DATE_FORMAT(ts.end_time,   '%H:%i')
+      ) AS time_slot,
+      b.booking_date
     FROM bookings b
-    JOIN username u ON b.user_id = u.id
-    JOIN facilities f ON b.facilities_id = f.id
-    JOIN timeslots t ON b.time_slot_id = t.id
-    ORDER BY b.booking_date DESC
+    JOIN users      u  ON b.user_id       = u.user_id
+    JOIN facilities f  ON b.facilities_id = f.facilities_id
+    JOIN time_slots ts ON b.time_slot_id  = ts.time_slot_id
+    ORDER BY b.booking_date DESC, ts.start_time
   `;
 
-  db.query(sql, (err, results) => {
+  db.query(sql, (err, bookings) => {
     if (err) {
       console.error('Error fetching bookings:', err);
       return res.status(500).send('Database error fetching bookings');
     }
-
-    // Convert booking_date to JS Date object
-    results.forEach(booking => {
-      booking.booking_date = new Date(booking.booking_date);
+    // Pass the array of booking objects straight to your template
+    res.render('viewBookings', {
+      bookings,
+      user: req.session.user
     });
+  });
+});
 
-    res.render('viewBookings', { bookings: results });
+// VIEW ALL BOOKINGS
+app.get('/bookings', checkAuthenticated, (req, res) => {
+  const sql = `
+    SELECT
+      b.booking_id,
+      u.username AS user_name,
+      f.name     AS facility_name,
+      -- build "HH:MM–HH:MM" from your start/end times
+      CONCAT(
+        DATE_FORMAT(ts.start_time, '%H:%i'),
+        '–',
+        DATE_FORMAT(ts.end_time,   '%H:%i')
+      ) AS time_slot,
+      b.booking_date
+    FROM bookings b
+    JOIN users      u  ON b.user_id       = u.user_id
+    JOIN facilities f  ON b.facilities_id = f.facilities_id
+    JOIN time_slots ts ON b.time_slot_id  = ts.time_slot_id
+    ORDER BY b.booking_date DESC, ts.start_time
+  `;
+
+  db.query(sql, (err, bookings) => {
+    if (err) {
+      console.error('Error fetching bookings:', err);
+      return res.status(500).send('Database error fetching bookings');
+    }
+    // Pass the array of booking objects straight to your template
+    res.render('viewBookings', {
+      bookings,
+      user: req.session.user
+    });
   });
 });
 
