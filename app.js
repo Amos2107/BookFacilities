@@ -4,14 +4,14 @@ const multer = require('multer');
 const session = require('express-session');
 const flash = require('connect-flash');
 const app = express();
-
+ 
 // ======= Multer Setup =======
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'public/images'),
   filename: (req, file, cb) => cb(null, file.originalname)
 });
 const upload = multer({ storage });
-
+ 
 // ======= MySQL Setup =======
 const db = mysql.createConnection({
   //host: 'localhost',
@@ -24,17 +24,17 @@ const db = mysql.createConnection({
   password: '54818715c15a7e3a31afd66aa17bcbd7d43e4250',
   database: 'C237CA2_deskbroad'
 });
-
+ 
 db.connect(err => {
   if (err) throw err;
   console.log('Connected to MySQL');
 });
-
+ 
 // ======= Middleware =======
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
-
+ 
 app.use(session({
   secret: 'secret',
   resave: false,
@@ -42,20 +42,20 @@ app.use(session({
   cookie: { maxAge: 1000 * 60 * 60 * 24 * 7 } // 1 week
 }));
 app.use(flash());
-
+ 
 // ======= Auth Middleware =======
 const checkAuthenticated = (req, res, next) => {
   if (req.session.user) return next();
   req.flash('error', 'Please log in to view this resource');
   res.redirect('/login');
 };
-
+ 
 const checkAdmin = (req, res, next) => {
   if (req.session.user?.role === 'admin') return next();
   req.flash('error', 'Access denied');
   res.redirect('/');
 };
-
+ 
 // ======= Auth Routes =======
 app.get('/', (req, res) => {
   const sql = 'SELECT * FROM facilities';
@@ -64,14 +64,14 @@ app.get('/', (req, res) => {
     res.render('index', { facilities: results, user: req.session.user, messages: req.flash('success') });
   });
 });
-
+ 
 app.get('/register', (req, res) => {
   res.render('register', {
     messages: req.flash('error'),
     formData: req.flash('formData')[0]
   });
 });
-
+ 
 const validateRegistration = (req, res, next) => {
   const { username, email, password, address, contact } = req.body;
   if (!username || !email || !password || !address || !contact) return res.status(400).send('All fields required');
@@ -82,7 +82,7 @@ const validateRegistration = (req, res, next) => {
   }
   next();
 };
-
+ 
 app.post('/register', validateRegistration, (req, res) => {
   const { username, email, password, address, contact, dob_day, dob_month, dob_year, gender } = req.body;
   const dob = `${dob_year}-${dob_month.padStart(2, '0')}-${dob_day.padStart(2, '0')}`;
@@ -94,21 +94,21 @@ app.post('/register', validateRegistration, (req, res) => {
     res.redirect('/login');
   });
 });
-
+ 
 app.get('/login', (req, res) => {
   res.render('login', {
     messages: req.flash('success'),
     errors: req.flash('error')
   });
 });
-
+ 
 app.post('/login', (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     req.flash('error', 'All fields required');
     return res.redirect('/login');
   }
-
+ 
   const sql = 'SELECT * FROM users WHERE email = ? AND password = SHA1(?)';
   db.query(sql, [email, password], (err, results) => {
     if (err) throw err;
@@ -122,18 +122,18 @@ app.post('/login', (req, res) => {
     }
   });
 });
-
+ 
 app.get('/logout', (req, res) => {
   req.session.destroy();
   res.redirect('/');
 });
-
+ 
 app.get('/admin', checkAuthenticated, checkAdmin, (req, res) => {
   res.render('admin', { user: req.session.user });
 });
-
+ 
 // ======= Facility Routes =======
-
+ 
 // View individual facility
 app.get('/facilities/:id', (req, res) => {
   const sql = 'SELECT * FROM facilities WHERE facilities_id = ?';
@@ -146,12 +146,12 @@ app.get('/facilities/:id', (req, res) => {
     }
   });
 });
-
+ 
 // Add Facility (Admin only)
 app.get('/addFacilities', checkAuthenticated, checkAdmin, (req, res) => {
   res.render('addFacilities', { user: req.session.user });
 });
-
+ 
 app.post('/addFacilities', checkAuthenticated, checkAdmin, upload.single('image'), (req, res) => {
   const { name, description, location, capacity, facilities_group } = req.body;
   const image = req.file ? req.file.filename : null;
@@ -161,7 +161,7 @@ app.post('/addFacilities', checkAuthenticated, checkAdmin, upload.single('image'
     res.redirect('/');
   });
 });
-
+ 
 // Edit Facility (Admin only)
 app.get('/editFacilities/:id', checkAuthenticated, checkAdmin, (req, res) => {
   const sql = 'SELECT * FROM facilities WHERE facilities_id = ?';
@@ -174,7 +174,7 @@ app.get('/editFacilities/:id', checkAuthenticated, checkAdmin, (req, res) => {
     }
   });
 });
-
+ 
 app.post('/editFacilities/:id', checkAuthenticated, checkAdmin, upload.single('image'), (req, res) => {
   const { name, description, location, capacity, facilities_group, currentImage } = req.body;
   const image = req.file ? req.file.filename : currentImage;
@@ -184,29 +184,29 @@ app.post('/editFacilities/:id', checkAuthenticated, checkAdmin, upload.single('i
     res.redirect('/');
   });
 });
-
+ 
 app.get('/filter', (req, res) => {
   const { group, keyword } = req.query;
-
+ 
   let sql = 'SELECT * FROM facilities WHERE 1=1';
   const params = [];
-
+ 
   if (group && group !== '') {
     sql += ' AND facilities_group = ?';
     params.push(group);
   }
-
+ 
   if (keyword && keyword.trim() !== '') {
     sql += ' AND name LIKE ?';
     params.push(`%${keyword}%`);
   }
-
+ 
   db.query(sql, params, (error, results) => {
     if (error) {
       console.error('Error filtering facilities:', error);
       return res.status(500).send('Server Error');
     }
-
+ 
     res.render('index', {
       facilities: results,
       user: req.session.user,
@@ -214,7 +214,7 @@ app.get('/filter', (req, res) => {
     });
   });
 });
-
+ 
 app.get('/admin/users', checkAuthenticated, checkAdmin, (req, res) => {
   db.query('SELECT user_id, username, email, dob, gender, role FROM users', (err, results) => {
     if (err) throw err;
@@ -225,21 +225,21 @@ app.get('/admin/users', checkAuthenticated, checkAdmin, (req, res) => {
     });
   });
 });
-
+ 
 app.get('/admin/manage-users', checkAuthenticated, checkAdmin, (req, res) => {
   const search = req.query.search || '';
-
+ 
   const sql = `
-    SELECT user_id, username, email, dob, gender, role 
-    FROM users 
+    SELECT user_id, username, email, dob, gender, role
+    FROM users
     WHERE username LIKE ? OR email LIKE ?
   `;
-
+ 
   const params = [`%${search}%`, `%${search}%`];
-
+ 
   db.query(sql, params, (err, results) => {
     if (err) throw err;
-
+ 
     res.render('viewUsers', {
       users: results,
       search,
@@ -247,42 +247,42 @@ app.get('/admin/manage-users', checkAuthenticated, checkAdmin, (req, res) => {
     });
   });
 });
-
+ 
 app.post('/admin/update-role/:id', checkAuthenticated, checkAdmin, (req, res) => {
   const userId = req.params.id;
   const newRole = req.body.role;
-
+ 
   if (!['user', 'admin'].includes(newRole)) {
     req.flash('error', 'Invalid role selected');
     return res.redirect('/admin/users');
   }
-
+ 
   // Get the current role of the user
   const getUserQuery = 'SELECT role FROM users WHERE user_id = ?';
   db.query(getUserQuery, [userId], (err, results) => {
     if (err) throw err;
-
+ 
     const currentRole = results[0]?.role;
-
+ 
     // If trying to demote the last admin
     if (currentRole === 'admin' && newRole === 'user') {
       db.query('SELECT COUNT(*) AS adminCount FROM users WHERE role = "admin"', (err, results) => {
         if (err) throw err;
-
+ 
         const adminCount = results[0].adminCount;
-
+ 
         if (adminCount <= 1) {
           req.flash('error', 'You cannot demote the last admin!');
           return res.redirect('/admin/users');
         }
-
+ 
         // Proceed with demotion
         updateUserRole();
       });
     } else {
       updateUserRole(); // No risk, just update
     }
-
+ 
     function updateUserRole() {
       const sql = 'UPDATE users SET role = ? WHERE user_id = ?';
       db.query(sql, [newRole, userId], (err) => {
@@ -293,39 +293,39 @@ app.post('/admin/update-role/:id', checkAuthenticated, checkAdmin, (req, res) =>
     }
   });
 });
-
+ 
 app.post('/admin/delete-user/:id', checkAuthenticated, checkAdmin, (req, res) => {
   const userId = req.params.id;
-
+ 
   // Get user to delete
   db.query('SELECT role FROM users WHERE user_id = ?', [userId], (err, results) => {
     if (err) throw err;
-
+ 
     const userToDelete = results[0];
-
+ 
     if (!userToDelete) {
       req.flash('error', 'User not found');
       return res.redirect('/admin/users');
     }
-
+ 
     // If deleting an admin, check if it's the last one
     if (userToDelete.role === 'admin') {
       db.query('SELECT COUNT(*) AS adminCount FROM users WHERE role = "admin"', (err, results) => {
         if (err) throw err;
-
+ 
         const adminCount = results[0].adminCount;
-
+ 
         if (adminCount <= 1) {
           req.flash('error', 'Cannot delete the last admin!');
           return res.redirect('/admin/users');
         }
-
+ 
         deleteUser(); // Safe to delete
       });
     } else {
       deleteUser();
     }
-
+ 
     function deleteUser() {
       db.query('DELETE FROM users WHERE user_id = ?', [userId], (err) => {
         if (err) throw err;
@@ -335,7 +335,7 @@ app.post('/admin/delete-user/:id', checkAuthenticated, checkAdmin, (req, res) =>
     }
   });
 });
-
+ 
 // Delete Facility (Admin only)
 app.get('/deleteFacilities/:id', checkAuthenticated, checkAdmin, (req, res) => {
   const sql = 'DELETE FROM facilities WHERE facilities_id = ?';
@@ -344,64 +344,63 @@ app.get('/deleteFacilities/:id', checkAuthenticated, checkAdmin, (req, res) => {
     res.redirect('/');
   });
 });
-
+ 
 // GET: Show booking form with success/error alerts
 app.get('/bookings/create', checkAuthenticated, (req, res) => {
   const success = req.query.success || 0;
   const error = req.query.error || 0;
-
-  const getUsers = 'SELECT user_id, username FROM users';
-  const getFacilities = 'SELECT facilities_id, name FROM facilities';
-  const getTimeSlots = 'SELECT time_slot_id, date FROM time_slots';
-
-  db.query(getUsers, (err, users) => {
-    if (err) return res.status(500).send('Error fetching users');
-    db.query(getFacilities, (err, facilities) => {
-      if (err) return res.status(500).send('Error fetching facilities');
-      db.query(getTimeSlots, (err, timeslots) => {
-        if (err) return res.status(500).send('Error fetching timeslots');
-
-        res.render('createBooking', {
-          users,
-          facilities,
-          timeslots,
-          success,
-          error
-        });
+ 
+  db.query('SELECT facilities_id, name FROM facilities', (err, facilities) => {
+    if (err) return res.status(500).send('Error fetching facilities');
+    db.query(
+  'SELECT time_slot_id, start_time, end_time FROM time_slots ORDER BY start_time',
+  (err, rows) => {
+    if (err) return res.status(500).send('Error fetching timeslots');
+    // build a “HH:MM – HH:MM” string for each slot
+    const timeslots = rows.map(r => ({
+      time_slot_id: r.time_slot_id,
+      label:        r.start_time.slice(0,5) + ' – ' + r.end_time.slice(0,5)
+    }));
+    res.render('createBooking', {
+      user: req.session.user,
+      facilities,
+      timeslots,
+      success,
+      error
       });
     });
   });
 });
-
+ 
 // POST: Handle booking form submission with availability check
 app.post('/bookings/create', (req, res) => {
   const user_id      = req.session.user.user_id;
   const facilities_id = req.body.facilities_id;
   const time_slot_id  = req.body.time_slot_id;
   const booking_date  = req.body.booking_date;
-
-
+ 
+ 
   if (!user_id || !facilities_id || !time_slot_id || !booking_date) {
     return res.status(400).send('Please fill all fields.');
   }
-
+ 
   // Check if booking exists with same facility, timeslot, and date
   const checkSql = `
     SELECT COUNT(*) AS count FROM bookings
     WHERE facilities_id = ? AND time_slot_id = ? AND booking_date = ?
   `;
-
+ 
   db.query(checkSql, [facilities_id, time_slot_id, booking_date], (err, results) => {
     if (err) {
       console.error('Error checking availability:', err);
       return res.status(500).send('Database error checking availability');
     }
-
+ 
     if (results[0].count > 0) {
       // Redirect with error query param to show error message
       return res.redirect('/bookings/create?error=1');
     }
-
+ 
     // Insert booking if available
     const insertSql = 'INSERT INTO bookings (user_id, facilities_id, time_slot_id, booking_date) VALUES (?, ?, ?, ?)';
     db.query(insertSql, [user_id, facilities_id, time_slot_id, booking_date], (err) => {
@@ -409,17 +408,17 @@ app.post('/bookings/create', (req, res) => {
         console.error('Error inserting booking:', err);
         return res.status(500).send('Database error saving booking');
       }
-
+ 
       res.redirect('/bookings/create?success=1');
     });
   });
 });
-
+ 
 // Root redirect
 app.get('/', (req, res) => {
   res.redirect('/bookings/create');
 });
-
+ 
 // VIEW ALL BOOKINGS
 app.get('/bookings', checkAuthenticated, (req, res) => {
   const sql = `
@@ -440,7 +439,7 @@ app.get('/bookings', checkAuthenticated, (req, res) => {
     JOIN time_slots ts ON b.time_slot_id  = ts.time_slot_id
     ORDER BY b.booking_date DESC, ts.start_time
   `;
-
+ 
   db.query(sql, (err, bookings) => {
     if (err) {
       console.error('Error fetching bookings:', err);
@@ -453,7 +452,7 @@ app.get('/bookings', checkAuthenticated, (req, res) => {
     });
   });
 });
-
+ 
 // VIEW ALL BOOKINGS
 app.get('/bookings', checkAuthenticated, (req, res) => {
   const sql = `
@@ -474,7 +473,7 @@ app.get('/bookings', checkAuthenticated, (req, res) => {
     JOIN time_slots ts ON b.time_slot_id  = ts.time_slot_id
     ORDER BY b.booking_date DESC, ts.start_time
   `;
-
+ 
   db.query(sql, (err, bookings) => {
     if (err) {
       console.error('Error fetching bookings:', err);
@@ -487,7 +486,7 @@ app.get('/bookings', checkAuthenticated, (req, res) => {
     });
   });
 });
-
+ 
 // ======================
 // TIME SLOT ROUTES
 // ======================
@@ -718,7 +717,7 @@ app.get('/timeslots/delete/:id', checkAuthenticated, checkAdmin, (req, res) => {
         res.redirect('/timeslots');
     });
 });
-
+ 
 // GET /rates
 app.get('/rates', (req, res) => {
   db.query('SELECT * FROM RatePeriod', (err, rows) => {
@@ -734,7 +733,7 @@ app.get('/rates', (req, res) => {
     res.render('rates', { rates });
   });
 });
-
+ 
 // GET /update/:day_type
 app.get('/update/:day_type', (req, res) => {
   const day_type = req.params.day_type;
@@ -751,7 +750,7 @@ app.get('/update/:day_type', (req, res) => {
     }
   );
 });
-
+ 
 // POST /update/:period_type
 app.post('/update/:period_type', (req, res) => {
   const { rate_period_id, time_start, time_end, rate_amount } = req.body;
@@ -767,7 +766,7 @@ app.post('/update/:period_type', (req, res) => {
     }
   );
 });
-
+ 
 // GET /viewrates — list all RatePeriod entries (read‑only)
 app.get('/viewrates', (req, res) => {
   db.query('SELECT * FROM RatePeriod', (err, rows) => {
@@ -783,7 +782,7 @@ app.get('/viewrates', (req, res) => {
     res.render('viewrates', { rates });
   });
 });
-
+ 
 // ======= Start Server =======
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
