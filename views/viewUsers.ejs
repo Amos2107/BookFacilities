@@ -35,6 +35,8 @@
         <tr>
           <th>Username</a></th>
           <th>Email</a></th>
+          <th>Date Of Birth</a></th>
+          <th>Gender</a></th>
           <th>Role</a></th>
           <th>Change Role</th>
           <th>Delete User</th>
@@ -45,9 +47,11 @@
           <tr>
             <td><%= user.username %></td>
             <td><%= user.email %></td>
+            <td><%= user.dob ? user.dob.toISOString().split('T')[0] : '-' %></td>
+            <td><%= user.gender %></td>
             <td><%= user.role %></td>
             <td>
-              <form method="POST" action="/admin/update-role/<%= user.id %>" class="d-flex">
+              <form method="POST" action="/admin/update-role/<%= user.user_id %>" class="d-flex">
                 <select name="role" class="form-select form-select-sm" style="width: auto;">
                   <option value="user" <%= user.role === 'user' ? 'selected' : '' %>>User</option>
                   <option value="admin" <%= user.role === 'admin' ? 'selected' : '' %>>Admin</option>
@@ -56,7 +60,7 @@
               </form>
             </td>
             <td>
-              <form method="POST" action="/admin/delete-user/<%= user.id %>" onsubmit="return confirm('Are you sure you want to delete this user?')">
+              <form method="POST" action="/admin/delete-user/<%= user.user_id %>" onsubmit="return confirm('Are you sure you want to delete this user?')">
                 <button type="submit" class="btn btn-danger btn-sm ms-2">Delete</button>
               </form>
             </td>

@@ -20,7 +20,7 @@
   </nav>
 
   <div class="container mt-5" style="max-width: 500px;">
-    <h2 class="text-center mb-4">Create an Account</h2>
+    <h2 class="text-center mb-4">Create a new account</h2>
 
     <% if (messages && messages.length > 0) { %>
       <div class="alert alert-danger">
@@ -34,6 +34,36 @@
       <div class="mb-3">
         <label for="username" class="form-label">Username</label>
         <input type="text" id="username" name="username" class="form-control" value="<%= formData?.username || '' %>" required />
+      </div>
+
+      <div class="mb-3">
+        <label for="dob" class="form-label">Date of birth <i class="bi bi-question-circle" title="Your birth date helps us verify your age."></i></label>
+        <div class="d-flex gap-2">
+          <select id="dob-day" name="dob_day" class="form-select" required></select>
+          
+          <select id="dob-month" name="dob_month" class="form-select" required>
+            <% const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; %>
+            <% months.forEach((m, i) => { %>
+              <option value="<%= i + 1 %>"><%= m %></option>
+            <% }); %>
+          </select>
+
+          <select id="dob-year" name="dob_year" class="form-select" required></select>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Gender <i class="bi bi-question-circle" title="Select your gender."></i></label>
+        <div class="d-flex gap-3">
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="gender" value="Female" required>
+            <label class="form-check-label">Female</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="gender" value="Male">
+            <label class="form-check-label">Male</label>
+          </div>
+        </div>
       </div>
 
       <div class="mb-3">
@@ -65,5 +95,48 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    const daySelect = document.getElementById('dob-day');
+    const monthSelect = document.getElementById('dob-month');
+    const yearSelect = document.getElementById('dob-year');
+
+    // Populate years
+    const currentYear = new Date().getFullYear();
+    for (let y = currentYear; y >= 1900; y--) {
+      const opt = document.createElement('option');
+      opt.value = y;
+      opt.text = y;
+      yearSelect.appendChild(opt);
+    }
+
+    // Update days based on month and year
+    function updateDays() {
+      const year = parseInt(yearSelect.value);
+      const month = parseInt(monthSelect.value); // 1-indexed (Jan = 1)
+      
+      const daysInMonth = new Date(year, month, 0).getDate(); // Day 0 of next month = last day of this month
+
+      daySelect.innerHTML = '';
+      for (let d = 1; d <= daysInMonth; d++) {
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.text = d;
+        daySelect.appendChild(opt);
+      }
+    }
+
+    // Attach listeners
+    monthSelect.addEventListener('change', updateDays);
+    yearSelect.addEventListener('change', updateDays);
+
+    // Set initial values (today's date) and update
+    window.addEventListener('DOMContentLoaded', () => {
+      monthSelect.value = new Date().getMonth() + 1;
+      yearSelect.value = new Date().getFullYear();
+      updateDays();
+      daySelect.value = new Date().getDate();
+    });
+  </script>
 </body>
 </html>

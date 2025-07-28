@@ -14,10 +14,15 @@ const upload = multer({ storage });
 
 // ======= MySQL Setup =======
 const db = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: 'Republic_C207',
-  database: 'c237_rentalfacilities'
+  //host: 'localhost',
+  //user: 'root',
+  //password: 'Republic_C207',
+  //database: 'c237_rentalfacilities'
+  host: 'xluryu.h.filess.io',
+  port: 61002,
+  user: 'C237CA2_deskbroad',
+  password: '54818715c15a7e3a31afd66aa17bcbd7d43e4250',
+  database: 'C237CA2_deskbroad'
 });
 
 db.connect(err => {
@@ -79,10 +84,11 @@ const validateRegistration = (req, res, next) => {
 };
 
 app.post('/register', validateRegistration, (req, res) => {
-  const { username, email, password, address, contact } = req.body;
+  const { username, email, password, address, contact, dob_day, dob_month, dob_year, gender } = req.body;
+  const dob = `${dob_year}-${dob_month.padStart(2, '0')}-${dob_day.padStart(2, '0')}`;
   const role = 'user';
-  const sql = 'INSERT INTO users (username, email, password, address, contact, role) VALUES (?, ?, SHA1(?), ?, ?, ?)';
-  db.query(sql, [username, email, password, address, contact, role], err => {
+  const sql = 'INSERT INTO users (username, email, password, address, contact, dob, gender, role) VALUES (?, ?, SHA1(?), ?, ?, ?, ?, ?)';
+  db.query(sql, [username, email, password, address, contact, dob, gender, role], err => {
     if (err) throw err;
     req.flash('success', 'Registration successful! Please log in.');
     res.redirect('/login');
@@ -210,7 +216,7 @@ app.get('/filter', (req, res) => {
 });
 
 app.get('/admin/users', checkAuthenticated, checkAdmin, (req, res) => {
-  db.query('SELECT id, username, email, role FROM users', (err, results) => {
+  db.query('SELECT id, username, email, dob, gender, role FROM users', (err, results) => {
     if (err) throw err;
     res.render('viewUsers', {
       users: results,
@@ -224,7 +230,7 @@ app.get('/admin/manage-users', checkAuthenticated, checkAdmin, (req, res) => {
   const search = req.query.search || '';
 
   const sql = `
-    SELECT id, username, email, role 
+    SELECT id, username, email, dob, gender, role 
     FROM users 
     WHERE username LIKE ? OR email LIKE ?
   `;
@@ -235,11 +241,10 @@ app.get('/admin/manage-users', checkAuthenticated, checkAdmin, (req, res) => {
     if (err) throw err;
 
     res.render('viewUsers', {
-  users: results,
-  search,
-  messages: req.flash('success').concat(req.flash('error')) // ✅ now it's a flat array
-});
-
+      users: results,
+      search,
+      messages: req.flash('success').concat(req.flash('error')) // ✅ now it's a flat array
+    });
   });
 });
 
