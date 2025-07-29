@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Booking Details</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+<nav class="navbar navbar-expand-sm bg-dark navbar-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">Rental Facilities</a>
+  </div>
+</nav>
+ 
+<div class="container py-5">
+  <h2>Booking Details</h2>
+ 
+  <dl class="row">
+    <dt class="col-sm-3">Booking ID</dt>
+    <dd class="col-sm-9"><%= booking.booking_id %></dd>
+ 
+    <dt class="col-sm-3">User</dt>
+    <dd class="col-sm-9"><%= booking.user_name %></dd>
+ 
+    <dt class="col-sm-3">Facility</dt>
+    <dd class="col-sm-9"><%= booking.facility_name %></dd>
+ 
+    <dt class="col-sm-3">Time Slot</dt>
+    <dd class="col-sm-9"><%= booking.time_slot %></dd>
+ 
+    <dt class="col-sm-3">Date</dt>
+    <dd class="col-sm-9"><%= booking.booking_date.toISOString().split('T')[0] %></dd>
+  </dl>
+ 
+  <a href="/bookings" class="btn btn-primary">Back to All Bookings</a>
+</div>
+ 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
