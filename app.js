@@ -531,9 +531,9 @@ app.post('/bookings/delete/:id', checkAuthenticated, (req, res) => {
   });
 });
  
-// ======================
+// =====================
 // TIME SLOT ROUTES
-// ======================
+// =====================
  
  
 // View all time slots
